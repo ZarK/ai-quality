@@ -18,15 +18,15 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "1.9.4",
     "@tjalve/aiq-model": "0.2.0",
-    "htmlhint": "^1.9.2",
-    "node-sql-parser": "^5.4.0",
-    "prettier": "^3.8.1",
-    "sql-formatter": "^15.7.2",
-    "stylelint": "^17.5.0",
-    "typescript": "^5.8.3",
-    "yaml": "^2.8.3"
+    "htmlhint": "1.9.2",
+    "node-sql-parser": "5.4.0",
+    "prettier": "3.8.1",
+    "sql-formatter": "15.7.2",
+    "stylelint": "17.5.0",
+    "typescript": "5.9.3",
+    "yaml": "2.8.3"
   },
   "publishConfig": {
     "access": "public"

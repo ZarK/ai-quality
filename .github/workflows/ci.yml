@@ -16,8 +16,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.19.0
-          cache: npm
+          node-version: 24.12.0
+
+      - name: Set up pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.0.4 --activate
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,19 +68,19 @@ jobs:
           python -m pip install -r test-projects/python/requirements.txt
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build packages
-        run: npm run build
+        run: pnpm run build
 
       - name: Run standalone tests
-        run: npm test
+        run: pnpm test
 
       - name: Run package smoke tests
-        run: npm run test:smoke
+        run: pnpm run test:smoke
 
       - name: Run benchmark budgets
-        run: npm run bench:ci
+        run: pnpm run bench:ci
 
       - name: Run lint
-        run: npm run lint
+        run: pnpm run lint
