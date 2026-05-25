@@ -129,7 +129,7 @@ Do not close an issue until its checklist is complete or explicitly updated to r
 - **NEVER use Momus or Metis in this repository.**
 - Do not invoke `momus`, `metis`, plan-review flows, or pre-planning consultations that depend on them.
 - Use direct tools first; if extra support is needed, use `explore`, `librarian`, or `oracle` instead.
-- **NEVER use `git worktree` in this repository again.** Work in `/Users/tjalve/Github/ai-code-quality`, the primary checkout, and the current branch only.
+- **NEVER use `git worktree` in this repository again.** Work in `/Users/tjalve/Github/ai-quality`, the primary checkout, and the current branch only.
 - Do not create linked worktrees, do not move `main` into another checkout, and do not solve branch-management problems with worktrees. If extra worktrees already exist, remove them before continuing.
 
 ## Branches And Commits
@@ -137,10 +137,7 @@ Do not close an issue until its checklist is complete or explicitly updated to r
 Branch names should include the issue number and short slug:
 
 ```text
-feat/<issue-number>-short-slug
-fix/<issue-number>-short-slug
-docs/<issue-number>-short-slug
-chore/<issue-number>-short-slug
+issue/<issue-number>-short-slug
 ```
 
 Commit messages:

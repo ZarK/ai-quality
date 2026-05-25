@@ -31,5 +31,5 @@
   "name": "ai-umpire",
   "repository": "https://github.com/ZarK/ai-umpire",
   "skills": "./skills/",
-  "version": "0.0.0"
+  "version": "0.0.2"
 }

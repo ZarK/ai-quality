@@ -1,12 +1,14 @@
 {
-  "Stop": [
-    {
-      "hooks": [
-        {
-          "command": "pnpm exec aiu hook-stop --tool codex",
-          "type": "command"
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "pnpm exec aiu hook-stop --tool codex",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
 }
