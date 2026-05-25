@@ -685,7 +685,9 @@ function resolveNextCommand(
 
   if (status === "passed" && currentStageSatisfied === true) {
     const nextStage = currentStage.index + 1;
-    return nextStage <= 9 ? `aiq config --set-stage ${nextStage}` : "aiq run <paths...>";
+    return nextStage < cliStageShortcutIds.length
+      ? `aiq config --set-stage ${nextStage}`
+      : "aiq run <paths...>";
   }
 
   return "aiq run <paths...>";
