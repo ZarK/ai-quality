@@ -191,7 +191,8 @@ async function resolveProgressStageOverrides(
     !options.includeProgressStage ||
     options.stageOverrides !== undefined ||
     parsed.stages.length > 0 ||
-    parsed.profile !== undefined
+    parsed.profile !== undefined ||
+    options.profileOverride !== undefined
   ) {
     return undefined;
   }
