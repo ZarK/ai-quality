@@ -1,0 +1,73 @@
+packages/opencode-plugin/src/index.ts
+  s_638a02645ec1ca::t_2de9c55a906215 13-14,16-20
+  s_638a02645ec1ca::t_68f2a0179223c0 15
+packages/cli/README.md
+  s_638a02645ec1ca::t_3868bf4dabe58f 27-28,30
+  s_638a02645ec1ca::t_849d80f9188380 29
+packages/github-action/tsconfig.json
+  s_638a02645ec1ca::t_29dcab69ee7cb3 9
+packages/cli/src/types.ts
+  s_638a02645ec1ca::t_849d80f9188380 160
+  s_638a02645ec1ca::t_f982d03317dea0 159,161
+packages/lsp/tsconfig.json
+  s_638a02645ec1ca::t_29dcab69ee7cb3 9
+packages/github-action/src/index.ts
+  s_638a02645ec1ca::t_a870400c5a2ad3 9,15,17-21
+packages/hook/package.json
+  s_638a02645ec1ca::t_a5de8702c7d4f2 21
+packages/mcp/src/index.ts
+  s_638a02645ec1ca::t_68f2a0179223c0 17
+  s_638a02645ec1ca::t_fb4ee7bd492038 15-16,18-22
+packages/hook/tsconfig.json
+  s_638a02645ec1ca::t_29dcab69ee7cb3 9
+packages/hook/src/bin/aiq-hook.ts
+  s_638a02645ec1ca::t_7a483ff366bdb7 5-11
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_5806f07582f0a3 327-337,343,345,348,361-385
+  s_638a02645ec1ca::t_07849709616db7 392,398,3953,4125,4134-4142,4144,4146-4151,4157-4159
+  s_638a02645ec1ca::t_7a2a391fcfb06f 45-51
+  s_638a02645ec1ca::t_cbe9a42a6f4f51 4143,4145,4152-4153,4160-4166
+  s_638a02645ec1ca::t_849d80f9188380 449
+packages/cli/src/api.ts
+  s_638a02645ec1ca::t_20bd4ac412efa0 1-5
+packages/opencode-plugin/tsconfig.json
+  s_638a02645ec1ca::t_29dcab69ee7cb3 9
+packages/mcp/package.json
+  s_638a02645ec1ca::t_a5de8702c7d4f2 22
+packages/cli/src/index.ts
+  s_638a02645ec1ca::t_20bd4ac412efa0 23
+packages/hook/src/index.ts
+  s_638a02645ec1ca::t_7e2c414aaf30b0 6,9-12,17
+packages/lsp/src/index.ts
+  s_638a02645ec1ca::t_8e55e9a981fd4e 6,13-16
+tsconfig.base.json
+  s_638a02645ec1ca::t_1e50d688bda02c 23
+packages/mcp/tsconfig.json
+  s_638a02645ec1ca::t_29dcab69ee7cb3 9
+packages/opencode-plugin/package.json
+  s_638a02645ec1ca::t_a5de8702c7d4f2 19
+packages/github-action/package.json
+  s_638a02645ec1ca::t_a5de8702c7d4f2 20
+vitest.config.ts
+  s_638a02645ec1ca::t_b392aa5f11e963 12
+packages/cli/package.json
+  s_638a02645ec1ca::t_1e50d688bda02c 15-18
+packages/lsp/package.json
+  s_638a02645ec1ca::t_a5de8702c7d4f2 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "8472e6f0a15d5138472150e0889b4c2d44eb705f",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
