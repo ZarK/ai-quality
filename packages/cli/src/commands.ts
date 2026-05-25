@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import type { Dirent } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -11,8 +11,14 @@ import {
   resolveAiqConfig,
   setAiqProgressStage,
 } from "@tjalve/aiq-config-schema";
-import { createRunPlan, runEngine, writePlanArtifact } from "@tjalve/aiq-engine";
-import type { LanguageId, RunRequest, StageId } from "@tjalve/aiq-model";
+import {
+  createRunPlan,
+  resolvePlanArtifactPath,
+  resolveReportArtifactPath,
+  runEngine,
+  writePlanArtifact,
+} from "@tjalve/aiq-engine";
+import type { LanguageId, RunRequest, RunResult, StageId } from "@tjalve/aiq-model";
 
 import {
   collectFirstRunManifestFiles,
@@ -34,10 +40,17 @@ import {
   formatPlanOutput,
   formatRunResultOutput,
   formatSetupGuidanceOutput,
+  formatStatusOutput,
+  toWorkflowStageOutput,
 } from "./output.js";
 import { createRunRequest, resolveCliConfig } from "./requests.js";
-import { formatError } from "./shared.js";
-import type { CliIo, ParsedArgs, SetupGuidanceCommand } from "./types.js";
+import { formatError, isErrorCode } from "./shared.js";
+import {
+  type CliIo,
+  type ParsedArgs,
+  type SetupGuidanceCommand,
+  cliStageShortcutIds,
+} from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -360,6 +373,51 @@ export async function runDoctorCommand(parsed: ParsedArgs, io: CliIo): Promise<n
   }
 }
 
+export async function runStatusCommand(parsed: ParsedArgs, io: CliIo): Promise<number> {
+  try {
+    const [resolvedConfig, loadedProgress] = await Promise.all([
+      resolveCliConfig(parsed, io, {
+        includeProgressStage: true,
+        surface: "cli",
+      }),
+      loadAiqProgress(io.cwd),
+    ]);
+    const reportPath = resolveReportArtifactPath(resolvedConfig.cwd);
+    const planPath = resolvePlanArtifactPath(resolvedConfig.cwd);
+    const report = await readStatusReport(reportPath);
+    const artifactPaths = {
+      plan: report.artifactPaths?.plan ?? planPath,
+      report: report.artifactPaths?.report ?? reportPath,
+    };
+    const currentStage = toWorkflowStageOutput(loadedProgress.progress.current_stage);
+    const lastRun = report.lastRun;
+    const currentStageSatisfied = resolveLastRunCurrentStageSatisfied(lastRun, currentStage);
+    io.stdout.write(
+      formatStatusOutput(parsed.format, {
+        artifactPaths,
+        currentStage,
+        ...(currentStageSatisfied === undefined ? {} : { currentStageSatisfied }),
+        defaultRun: createDefaultRunOutput(loadedProgress.progress.current_stage),
+        lastRun,
+        nextCommand: resolveNextCommand(
+          currentStage,
+          lastRun.failedStages,
+          lastRun.status,
+          currentStageSatisfied,
+        ),
+        progressLastRun: loadedProgress.progress.last_run,
+        progressPath: loadedProgress.path,
+        progressSource: loadedProgress.source,
+        selectedStages: resolvedConfig.stages,
+      }),
+    );
+    return 0;
+  } catch (error) {
+    io.stderr.write(`${formatError(error)}\n`);
+    return 2;
+  }
+}
+
 export function runSetupGuidanceCommand(parsed: ParsedArgs, io: CliIo): number {
   const command = parsed.command as SetupGuidanceCommand;
   const output = createSetupGuidanceOutput(command, parsed.setupSubcommand);
@@ -443,6 +501,7 @@ export async function runFirstRunCommand(parsed: ParsedArgs, io: CliIo): Promise
 export async function runCheckCommand(parsed: ParsedArgs, io: CliIo): Promise<number> {
   const outputCommand = parsed.command === "run" ? "run" : "check";
   let request: RunRequest;
+  let loadedProgress: Awaited<ReturnType<typeof loadAiqProgress>> | undefined;
   try {
     request = await createRunRequest(parsed, io, {
       context: "cli",
@@ -450,6 +509,7 @@ export async function runCheckCommand(parsed: ParsedArgs, io: CliIo): Promise<nu
       mode: "check",
       surface: "cli",
     });
+    loadedProgress = await loadOptionalRunProgress(parsed, io);
   } catch (error) {
     io.stderr.write(`${formatError(error)}\n`);
     return 2;
@@ -465,13 +525,264 @@ export async function runCheckCommand(parsed: ParsedArgs, io: CliIo): Promise<nu
 
     const result = await runEngine(request);
     io.stdout.write(
-      formatRunResultOutput(parsed.format, result, outputCommand, { verbose: parsed.verbose }),
+      formatRunResultOutput(parsed.format, result, outputCommand, {
+        verbose: parsed.verbose,
+        ...(loadedProgress === undefined
+          ? {}
+          : { workflow: createRunWorkflowOutput(loadedProgress, request, result) }),
+      }),
     );
     return result.ok ? 0 : 1;
   } catch (error) {
     io.stderr.write(`${formatError(error)}\n`);
     return 1;
   }
+}
+
+type StatusLastRun = Parameters<typeof formatStatusOutput>[1]["lastRun"];
+
+async function readStatusReport(reportPath: string): Promise<{
+  artifactPaths?: {
+    plan?: string;
+    report?: string;
+  };
+  lastRun: StatusLastRun;
+}> {
+  let rawReport: string;
+  try {
+    rawReport = await readFile(reportPath, "utf8");
+  } catch (error) {
+    if (isErrorCode(error, "ENOENT")) {
+      return {
+        lastRun: {
+          failedStages: [],
+          stages: [],
+          status: "none",
+        },
+      };
+    }
+
+    return {
+      lastRun: {
+        failedStages: [],
+        stages: [],
+        status: "unreadable",
+      },
+    };
+  }
+
+  let value: unknown;
+  try {
+    value = JSON.parse(rawReport);
+  } catch {
+    return {
+      lastRun: {
+        failedStages: [],
+        stages: [],
+        status: "unreadable",
+      },
+    };
+  }
+
+  if (!isRecord(value)) {
+    return {
+      lastRun: {
+        failedStages: [],
+        stages: [],
+        status: "unreadable",
+      },
+    };
+  }
+
+  const status = readRunStatus(value);
+  if (status === undefined) {
+    return {
+      lastRun: {
+        failedStages: [],
+        stages: [],
+        status: "unreadable",
+      },
+    };
+  }
+
+  const runId = typeof value.runId === "string" ? value.runId : undefined;
+  const finishedAt = typeof value.finishedAt === "string" ? value.finishedAt : undefined;
+  const artifacts = isRecord(value.artifacts) ? value.artifacts : {};
+  const planPath = typeof artifacts.planPath === "string" ? artifacts.planPath : undefined;
+  const actualReportPath =
+    typeof artifacts.reportPath === "string" ? artifacts.reportPath : undefined;
+  const artifactPaths =
+    planPath === undefined && actualReportPath === undefined
+      ? undefined
+      : {
+          ...(planPath === undefined ? {} : { plan: planPath }),
+          ...(actualReportPath === undefined ? {} : { report: actualReportPath }),
+        };
+
+  return {
+    ...(artifactPaths === undefined ? {} : { artifactPaths }),
+    lastRun: {
+      failedStages: readFailedStages(value),
+      ...(finishedAt === undefined ? {} : { finishedAt }),
+      ...(runId === undefined ? {} : { runId }),
+      stages: readStageStatuses(value),
+      status,
+    },
+  };
+}
+
+function createRunWorkflowOutput(
+  loadedProgress: Awaited<ReturnType<typeof loadAiqProgress>>,
+  request: RunRequest,
+  result: RunResult,
+) {
+  const currentStage = toWorkflowStageOutput(loadedProgress.progress.current_stage);
+  const failedStages = result.stages
+    .filter((stage) => stage.status !== "passed")
+    .map((stage) => toWorkflowStageOutput(resolveStageIndex(stage.stageId)));
+  const currentStageResult = result.stages.find((stage) => stage.stageId === currentStage.id);
+  const currentStageSatisfied =
+    currentStageResult === undefined ? undefined : currentStageResult.status === "passed";
+
+  return {
+    currentStage,
+    ...(currentStageSatisfied === undefined ? {} : { currentStageSatisfied }),
+    debugCommands: failedStages.map((stage) => createDebugCommand(stage.index)),
+    defaultRun: createDefaultRunOutput(loadedProgress.progress.current_stage),
+    failedStages,
+    nextCommand: resolveNextCommand(
+      currentStage,
+      failedStages,
+      result.summary.status,
+      currentStageSatisfied,
+    ),
+    progressPath: loadedProgress.path,
+    progressSource: loadedProgress.source,
+    selectedStages: [...(request.stages ?? [])],
+  };
+}
+
+async function loadOptionalRunProgress(
+  parsed: ParsedArgs,
+  io: CliIo,
+): Promise<Awaited<ReturnType<typeof loadAiqProgress>> | undefined> {
+  try {
+    return await loadAiqProgress(io.cwd);
+  } catch (error) {
+    if (parsed.stages.length > 0 || parsed.profile !== undefined) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
+function createDefaultRunOutput(currentStageIndex: number) {
+  const stages = cliStageShortcutIds
+    .slice(0, currentStageIndex + 1)
+    .map((_stageId, index) => toWorkflowStageOutput(index));
+  return {
+    range: `0..${currentStageIndex}`,
+    stages,
+  };
+}
+
+function resolveNextCommand(
+  currentStage: ReturnType<typeof toWorkflowStageOutput>,
+  failedStages: readonly ReturnType<typeof toWorkflowStageOutput>[],
+  status: StatusLastRun["status"],
+  currentStageSatisfied?: boolean,
+): string {
+  const [firstFailedStage] = failedStages;
+  if (firstFailedStage !== undefined) {
+    return createDebugCommand(firstFailedStage.index);
+  }
+
+  if (status === "passed" && currentStageSatisfied === true) {
+    const nextStage = currentStage.index + 1;
+    return nextStage < cliStageShortcutIds.length
+      ? `aiq config --set-stage ${nextStage}`
+      : "aiq run <paths...>";
+  }
+
+  return "aiq run <paths...>";
+}
+
+function createDebugCommand(stageIndex: number): string {
+  return `aiq run <paths...> --only ${stageIndex} --verbose`;
+}
+
+function readRunStatus(value: Record<string, unknown>): StatusLastRun["status"] | undefined {
+  const summary = value.summary;
+  if (!isRecord(summary)) {
+    return undefined;
+  }
+
+  switch (summary.status) {
+    case "failed":
+    case "not_implemented":
+    case "passed":
+      return summary.status;
+    default:
+      return undefined;
+  }
+}
+
+function readFailedStages(value: Record<string, unknown>) {
+  return readStageStatuses(value)
+    .filter((stage) => stage.status !== "passed")
+    .map((stage) => stage.stage);
+}
+
+function readStageStatuses(value: Record<string, unknown>) {
+  if (!Array.isArray(value.stages)) {
+    return [];
+  }
+
+  return value.stages
+    .filter((stage): stage is Record<string, unknown> => isRecord(stage))
+    .map((stage) => {
+      const stageId = typeof stage.stageId === "string" ? stage.stageId : undefined;
+      const status = readStageStatus(stage.status);
+      return stageId === undefined || !isStageId(stageId) || status === undefined
+        ? undefined
+        : {
+            stage: toWorkflowStageOutput(resolveStageIndex(stageId)),
+            status,
+          };
+    })
+    .filter((stage): stage is NonNullable<typeof stage> => stage !== undefined);
+}
+
+function resolveLastRunCurrentStageSatisfied(
+  lastRun: StatusLastRun,
+  currentStage: ReturnType<typeof toWorkflowStageOutput>,
+): boolean | undefined {
+  const stage = lastRun.stages.find((candidate) => candidate.stage.id === currentStage.id);
+  return stage === undefined ? undefined : stage.status === "passed";
+}
+
+function readStageStatus(value: unknown): "failed" | "not_implemented" | "passed" | undefined {
+  switch (value) {
+    case "failed":
+    case "not_implemented":
+    case "passed":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function resolveStageIndex(stageId: StageId): number {
+  return cliStageShortcutIds.indexOf(stageId);
+}
+
+function isStageId(value: string | undefined): value is StageId {
+  return value !== undefined && cliStageShortcutIds.includes(value as StageId);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function detectProjectLanguages(cwd: string): Promise<Set<LanguageId>> {

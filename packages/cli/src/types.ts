@@ -15,6 +15,7 @@ export type CommandName =
   | "plan"
   | "run"
   | "serve"
+  | "status"
   | "watch";
 export type OutputFormat = "json" | "text";
 export type SetupGuidanceCommand = "ci" | "hook" | "ignore" | "install-tools";
@@ -97,6 +98,7 @@ Usage:
   aiq check <files...> [--files <files...>] [--files-from path] [--stdin-file-list]
   aiq config [--print-config | --set-stage <0-9>]
   aiq doctor [--up-to <0-9> | --only <0-9> | --stage <stage>] [--profile <fast|standard|deep>] [--verbose]
+  aiq status [--format <json|text>]
   aiq install-tools
   aiq hook install
   aiq ci setup
@@ -116,6 +118,7 @@ Examples:
   aiq run src --up-to 3
   aiq run src --only 1
   aiq run src --stage typecheck
+  aiq status
 
 Options:
   --diff-only
@@ -157,6 +160,7 @@ Operational checks:
   --dry-run prints the run plan without executing tools or writing artifacts.
   --verbose adds command/tool details to text run output.
   aiq doctor validates config/progress state, uses the same stage selection as run, and reports detected tech plus required, installed, optional, bundled, and project-managed tools.
+  aiq status shows the current stage, default cumulative run range, latest artifact paths, last run status, and next suggested command.
   install-tools, hook install, ci setup, and ignore write are replaced by explicit guidance; use aiq doctor for diagnostics and aiq config for canonical project state.
 
 Config state:

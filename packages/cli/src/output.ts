@@ -7,7 +7,7 @@ import {
   formatRunResultAsText,
 } from "@tjalve/aiq-reporters";
 
-import type { CliIo, OutputFormat } from "./types.js";
+import { type CliIo, type OutputFormat, cliStageShortcutIds } from "./types.js";
 import type { SetupGuidanceCommand, VerboseToolRunDetail } from "./types.js";
 
 export interface ConfigCommandOutput {
@@ -73,11 +73,60 @@ export interface FirstRunSetupOutput {
   summary: string;
 }
 
+export interface WorkflowStageOutput {
+  id: StageId;
+  index: number;
+  name: string;
+}
+
+export interface RunWorkflowOutput {
+  currentStage: WorkflowStageOutput;
+  currentStageSatisfied?: boolean;
+  debugCommands: string[];
+  defaultRun: {
+    range: string;
+    stages: WorkflowStageOutput[];
+  };
+  failedStages: WorkflowStageOutput[];
+  nextCommand: string;
+  progressPath: string;
+  progressSource: "defaults" | "file";
+  selectedStages: StageId[];
+}
+
 export interface SetupGuidanceOutput {
   command: SetupGuidanceCommand;
   replacement: string;
   requested: string;
   summary: string;
+}
+
+export interface StatusCommandOutput {
+  artifactPaths: {
+    plan: string;
+    report: string;
+  };
+  currentStage: WorkflowStageOutput;
+  currentStageSatisfied?: boolean;
+  defaultRun: {
+    range: string;
+    stages: WorkflowStageOutput[];
+  };
+  lastRun: {
+    failedStages: WorkflowStageOutput[];
+    finishedAt?: string;
+    runId?: string;
+    stages: Array<{
+      stage: WorkflowStageOutput;
+      status: "failed" | "not_implemented" | "passed";
+    }>;
+    status: "failed" | "none" | "not_implemented" | "passed" | "unreadable";
+  };
+  nextCommand: string;
+  progressLastRun: string | null;
+  progressPath: string;
+  progressSource: "defaults" | "file";
+  selectedStages: StageId[];
 }
 
 type BenchmarkReport = Parameters<typeof formatBenchmarkReportAsJson>[0];
@@ -109,10 +158,12 @@ export function formatRunResultOutput(
   format: OutputFormat,
   result: RunResult,
   displayMode?: RunResult["mode"] | "run",
-  options: { verbose?: boolean } = {},
+  options: { verbose?: boolean; workflow?: RunWorkflowOutput } = {},
 ): string {
   if (format === "json") {
-    return formatRunResultAsJson(result);
+    return options.workflow === undefined
+      ? formatRunResultAsJson(result)
+      : `${JSON.stringify({ ...result, workflow: options.workflow }, null, 2)}\n`;
   }
 
   const baseOutput =
@@ -123,11 +174,16 @@ export function formatRunResultOutput(
           `AIQ ${displayMode}\n`,
         );
 
-  if (!options.verbose) {
-    return baseOutput;
-  }
+  const parts = [
+    options.workflow === undefined ? undefined : formatRunWorkflowPrelude(options.workflow),
+    baseOutput.trimEnd(),
+    options.verbose
+      ? formatVerboseToolRunDetails(collectVerboseToolRuns(result)).trimEnd()
+      : undefined,
+    options.workflow === undefined ? undefined : formatRunWorkflowNextSteps(options.workflow),
+  ].filter((part): part is string => part !== undefined && part.length > 0);
 
-  return `${baseOutput.trimEnd()}\n${formatVerboseToolRunDetails(collectVerboseToolRuns(result))}`;
+  return `${parts.join("\n")}\n`;
 }
 
 export function formatFirstRunResultDetails(result: RunResult): string {
@@ -191,6 +247,32 @@ export function formatDoctorOutput(format: OutputFormat, output: DoctorCommandOu
   ].join("\n");
 }
 
+export function formatStatusOutput(format: OutputFormat, output: StatusCommandOutput): string {
+  if (format === "json") {
+    return `${JSON.stringify(output, null, 2)}\n`;
+  }
+
+  return [
+    "AIQ status",
+    `Current stage: ${formatWorkflowStage(output.currentStage)}`,
+    `Progress: ${output.progressPath} (${output.progressSource})`,
+    `Default run: stages ${output.defaultRun.range} (${output.defaultRun.stages.map((stage) => stage.id).join(", ")})`,
+    `Selected stages: ${output.selectedStages.length === 0 ? "none configured yet" : output.selectedStages.join(", ")}`,
+    formatStatusLastRun(output.lastRun),
+    output.currentStageSatisfied === undefined
+      ? undefined
+      : `Current stage satisfied: ${output.currentStageSatisfied ? "yes" : "no"}`,
+    `Artifacts: plan=${output.artifactPaths.plan}, report=${output.artifactPaths.report}`,
+    output.lastRun.failedStages.length === 0
+      ? undefined
+      : `Failed stages: ${output.lastRun.failedStages.map(formatWorkflowStage).join(", ")}`,
+    `Next: ${output.nextCommand}`,
+    "",
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join("\n");
+}
+
 export function formatFirstRunDetectionOutput(
   format: OutputFormat,
   output: FirstRunDetectionOutput,
@@ -249,6 +331,70 @@ function formatDoctorCheckStatus(check: DoctorCheckOutput): "INFO" | "MISSING" |
   }
 
   return "MISSING";
+}
+
+function formatRunWorkflowPrelude(workflow: RunWorkflowOutput): string {
+  return [
+    "AIQ workflow",
+    `Current stage: ${formatWorkflowStage(workflow.currentStage)} (${workflow.progressPath}, ${workflow.progressSource})`,
+    `Default run: stages ${workflow.defaultRun.range} (${workflow.defaultRun.stages.map((stage) => stage.id).join(", ")})`,
+    `Selected stages: ${workflow.selectedStages.length === 0 ? "none configured yet" : workflow.selectedStages.join(", ")}`,
+    "",
+  ].join("\n");
+}
+
+function formatRunWorkflowNextSteps(workflow: RunWorkflowOutput): string {
+  if (workflow.failedStages.length > 0) {
+    return [
+      "Workflow next:",
+      ...workflow.debugCommands.map((command, index) => {
+        const stage = workflow.failedStages[index];
+        const label = stage === undefined ? "failed stage" : formatWorkflowStage(stage);
+        return `  - Debug ${label}: ${command}`;
+      }),
+      `  - Then rerun: ${workflow.nextCommand}`,
+      "",
+    ].join("\n");
+  }
+
+  if (workflow.currentStageSatisfied !== undefined) {
+    return [
+      "Workflow next:",
+      `  - Current stage satisfied: ${workflow.currentStageSatisfied ? "yes" : "no"} (${formatWorkflowStage(workflow.currentStage)})`,
+      `  - ${workflow.currentStageSatisfied ? "Advance" : "Continue"}: ${workflow.nextCommand}`,
+      "",
+    ].join("\n");
+  }
+
+  return ["Workflow next:", `  - ${workflow.nextCommand}`, ""].join("\n");
+}
+
+function formatStatusLastRun(lastRun: StatusCommandOutput["lastRun"]): string {
+  if (lastRun.status === "none") {
+    return "Last run: none";
+  }
+
+  const metadata = [lastRun.runId, lastRun.finishedAt].filter(
+    (value): value is string => value !== undefined && value.length > 0,
+  );
+  return `Last run: ${lastRun.status}${metadata.length === 0 ? "" : ` (${metadata.join(", ")})`}`;
+}
+
+function formatWorkflowStage(stage: WorkflowStageOutput): string {
+  return `${stage.index} ${stage.name}`;
+}
+
+export function toWorkflowStageOutput(index: number): WorkflowStageOutput {
+  const id = cliStageShortcutIds[index];
+  if (id === undefined) {
+    throw new Error(`Unknown AIQ stage index: ${index}`);
+  }
+
+  return {
+    id,
+    index,
+    name: id,
+  };
 }
 
 export function formatSetupGuidanceOutput(
