@@ -202,15 +202,6 @@ async function resolveProgressStageOverrides(
     return undefined;
   }
 
-  if (
-    progress.progress.current_stage < 0 ||
-    progress.progress.current_stage >= cliStageShortcutIds.length
-  ) {
-    throw new Error(
-      `${progress.path}.current_stage must be a stage index from 0 to ${cliStageShortcutIds.length - 1}.`,
-    );
-  }
-
   return [...cliStageShortcutIds.slice(0, progress.progress.current_stage + 1)];
 }
 
