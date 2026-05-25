@@ -27,6 +27,7 @@
     "bench:ci": "node packages/cli/dist/bin/aiq.js bench --tag ci --format json",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:publish-readiness": "node scripts/run-smoke-tests.mjs",
     "test:smoke": "node scripts/run-smoke-tests.mjs",
     "lint": "biome check README.md package.json tsconfig.base.json tsconfig.json biome.json vitest.config.ts packages/benchmark packages/cli packages/config-schema packages/model packages/engine packages/reporters packages/lsp packages/hook packages/github-action packages/opencode-plugin packages/mcp",
     "format": "biome format --write README.md package.json tsconfig.base.json tsconfig.json biome.json vitest.config.ts packages/benchmark packages/cli packages/config-schema packages/model packages/engine packages/reporters packages/lsp packages/hook packages/github-action packages/opencode-plugin packages/mcp"

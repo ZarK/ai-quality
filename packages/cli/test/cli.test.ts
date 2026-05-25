@@ -177,23 +177,40 @@ async function ensurePackageSmokeBuild(): Promise<void> {
   await packageSmokeBuildPromise;
 }
 
+interface PackedWorkspacePackage {
+  files: Array<{ path: string }>;
+  tarballPath: string;
+  workspace: (typeof packageSmokeWorkspaces)[number];
+}
+
 async function packWorkspacePackage(
   workspace: (typeof packageSmokeWorkspaces)[number],
-): Promise<string> {
+): Promise<PackedWorkspacePackage> {
   const packResult = await runNpmCommand(["pack", "--json", "--workspace", workspace], {
     cwd: repoRoot,
   });
 
   expect(packResult.exitCode).toBe(0);
-  const [packMetadata] = JSON.parse(packResult.stdout) as Array<{ filename: string }>;
+  const [packMetadata] = JSON.parse(packResult.stdout) as Array<{
+    filename: string;
+    files: Array<{ path: string }>;
+  }>;
   expect(packMetadata).toBeDefined();
 
   const tarballPath = path.join(repoRoot, packMetadata.filename);
   tempArtifacts.push(tarballPath);
-  return tarballPath;
+  return {
+    files: packMetadata.files,
+    tarballPath,
+    workspace,
+  };
 }
 
-async function createPackedPackageFixture(): Promise<{ fixtureFilePath: string; root: string }> {
+async function createPackedPackageFixture(): Promise<{
+  fixtureFilePath: string;
+  packages: PackedWorkspacePackage[];
+  root: string;
+}> {
   const root = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-package-smoke-"));
   tempArtifacts.push(root);
 
@@ -207,20 +224,22 @@ async function createPackedPackageFixture(): Promise<{ fixtureFilePath: string; 
   const fixtureFilePath = path.join(root, "src", "index.ts");
   await writeFile(fixtureFilePath, "export const value = 1;\n", "utf8");
 
-  const tarballs: string[] = [];
-  for (const workspace of packageSmokeWorkspaces) {
-    tarballs.push(await packWorkspacePackage(workspace));
-  }
+  const packages = await Promise.all(packageSmokeWorkspaces.map(packWorkspacePackage));
 
   const installResult = await runNpmCommand(
-    ["install", "--ignore-scripts", "--no-package-lock", ...tarballs],
+    [
+      "install",
+      "--ignore-scripts",
+      "--no-package-lock",
+      ...packages.map((entry) => entry.tarballPath),
+    ],
     {
       cwd: root,
     },
   );
   expect(installResult.exitCode).toBe(0);
 
-  return { fixtureFilePath, root };
+  return { fixtureFilePath, packages, root };
 }
 
 async function createTypeScriptFixtureProject(
@@ -3844,6 +3863,18 @@ describePackageSmoke("CLI package smoke", () => {
       });
 
       const packedFixture = await createPackedPackageFixture();
+      const cliPackage = packedFixture.packages.find((entry) => entry.workspace === "packages/cli");
+      expect(cliPackage?.files.map((entry) => entry.path).sort()).toEqual(
+        expect.arrayContaining(["README.md", "dist/bin/aiq.js"]),
+      );
+
+      const installedPackageReadme = await readFile(
+        path.join(packedFixture.root, "node_modules", "@tjalve", "aiq", "README.md"),
+        "utf8",
+      );
+      expect(installedPackageReadme).toContain("# @tjalve/aiq");
+      expect(installedPackageReadme).toContain("npx @tjalve/aiq");
+      expect(installedPackageReadme).not.toContain("Repository Workflow");
 
       const packedHelp = await runNpmCommand(["exec", "--", "aiq", "--", "--help"], {
         cwd: packedFixture.root,
@@ -3868,6 +3899,17 @@ describePackageSmoke("CLI package smoke", () => {
       expect(packedFirstRun.stdout).toContain("- lint: passed");
       await access(path.join(packedFixture.root, ".aiq", "aiq.config.json"));
       await access(path.join(packedFixture.root, ".aiq", "progress.json"));
+
+      const emptyDir = path.join(packedFixture.root, "empty");
+      await mkdir(emptyDir);
+      const packedEmptyFirstRun = await runNpmCommand(["exec", "--", "aiq"], {
+        cwd: emptyDir,
+      });
+      expect(packedEmptyFirstRun.exitCode).toBe(2);
+      expect(packedEmptyFirstRun.stderr).toBe("");
+      expect(packedEmptyFirstRun.stdout).toContain("AIQ first run");
+      expect(packedEmptyFirstRun.stdout).toContain("No supported project marker was found");
+      expect(packedEmptyFirstRun.stdout).toContain("Examples:");
 
       const packedSetStage = await runNpmCommand(
         ["exec", "--", "aiq", "--", "config", "--set-stage", "3"],
@@ -3948,6 +3990,17 @@ describePackageSmoke("CLI package smoke", () => {
       expect(packedReport.request.selection.stages).toEqual(["lint"]);
       expect(packedReport.summary.fileCount).toBe(1);
       expect(packedReport.summary.status).toBe("passed");
+
+      const packedDoctor = await runNpmCommand(
+        ["exec", "--", "aiq", "--", "doctor", "--only", "1"],
+        {
+          cwd: packedFixture.root,
+        },
+      );
+      expect(packedDoctor.exitCode).toBe(0);
+      expect(packedDoctor.stderr).not.toContain("ReferenceError");
+      expect(packedDoctor.stdout).toContain("AIQ doctor");
+      expect(packedDoctor.stdout).toContain("Stages: lint");
 
       const packedRemovedCommand = await runNpmCommand(["exec", "--", "aiq", "--", "ci", "setup"], {
         cwd: packedFixture.root,
