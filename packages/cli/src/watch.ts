@@ -1,6 +1,7 @@
 import { watch as watchFileSystem } from "node:fs";
 import path from "node:path";
 
+import { type LoadedAiqProgress, loadAiqProgress } from "@tjalve/aiq-config-schema";
 import { buildRunPlan, resolveRunRequest, runResolvedRequest } from "@tjalve/aiq-engine";
 import type { ResolvedRunRequest, RunPlan, RunRequest } from "@tjalve/aiq-model";
 
@@ -16,6 +17,7 @@ import {
   waitForAbort,
 } from "./shared.js";
 import { type CliIo, type CliRunOptions, type ParsedArgs, defaultWatchCadenceMs } from "./types.js";
+import { createRunWorkflowForStages } from "./workflow.js";
 
 interface WatchDirectoryTarget {
   dir: string;
@@ -26,6 +28,7 @@ interface WatchPreparedRun {
   cadence?: PreparedWatchExecution;
   cadenceMs?: number;
   continuous?: PreparedWatchExecution;
+  progress?: LoadedAiqProgress;
   replanPaths: Set<string>;
   replanWatchPaths: string[];
   targets: WatchDirectoryTarget[];
@@ -186,7 +189,19 @@ export async function runWatchCommand(
         execution.plan,
       );
       lastExitCode = result.ok ? 0 : 1;
-      writeWatchOutput(io, parsed.format, trigger, result);
+      writeWatchOutput(
+        io,
+        parsed.format,
+        trigger,
+        result,
+        nextPrepared.progress === undefined
+          ? undefined
+          : createRunWorkflowForStages(
+              nextPrepared.progress,
+              execution.request.selection.stages,
+              result,
+            ),
+      );
     } catch (error) {
       if (isCliCancellation(error, activeSignal.signal)) {
         return;
@@ -272,7 +287,11 @@ async function createWatchPreparedRun(
   cachedStreamFiles?: string[],
 ): Promise<WatchPreparedRun> {
   const manifest = await createManifestInput(parsed, io, cachedStreamFiles);
-  const resolvedConfig = await resolveCliConfig(parsed, io, { surface: "watch" });
+  const resolvedConfig = await resolveCliConfig(parsed, io, {
+    includeProgressStage: true,
+    surface: "watch",
+  });
+  const progress = await loadOptionalWatchProgress(parsed, io);
   const baseRequest: RunRequest = {
     context: "watch",
     cwd: resolvedConfig.cwd,
@@ -310,9 +329,11 @@ async function createWatchPreparedRun(
   const replanPaths = buildWatchReplanPaths(
     targetRequest.cwd,
     resolvedConfig.configPath,
+    progress?.path,
     filesFromPath,
   );
   const preparedRun: WatchPreparedRun = {
+    ...(progress === undefined ? {} : { progress }),
     replanPaths,
     replanWatchPaths: [...replanPaths],
     targets: buildWatchTargets(
@@ -352,6 +373,7 @@ async function createPreparedWatchExecution(
 function buildWatchReplanPaths(
   cwd: string,
   configPath?: string,
+  progressPath?: string,
   filesFromPath?: string,
 ): Set<string> {
   const replanPaths = new Set<string>();
@@ -361,10 +383,25 @@ function buildWatchReplanPaths(
   } else {
     replanPaths.add(path.resolve(configPath));
   }
+  if (progressPath !== undefined) {
+    replanPaths.add(path.resolve(progressPath));
+  }
   if (filesFromPath !== undefined) {
     replanPaths.add(path.resolve(filesFromPath));
   }
   return replanPaths;
+}
+
+async function loadOptionalWatchProgress(
+  parsed: ParsedArgs,
+  io: CliIo,
+): Promise<LoadedAiqProgress | undefined> {
+  if (parsed.stages.length > 0 || parsed.profile !== undefined) {
+    return undefined;
+  }
+
+  const progress = await loadAiqProgress(io.cwd);
+  return progress.source === "file" ? progress : undefined;
 }
 
 function shouldReprepareWatchRun(prepared: WatchPreparedRun, trigger: string): boolean {

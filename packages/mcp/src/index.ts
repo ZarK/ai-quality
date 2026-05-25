@@ -5,12 +5,18 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   type AiqProfileName,
+  type AiqProgressRunSelection,
   type ResolvedAiqConfig,
   aiqProfileNames,
+  createAiqProgressRunSelection,
+  loadAiqProgress,
   resolveAiqConfig,
+  resolveAiqProgressStageIds,
 } from "@tjalve/aiq-config-schema";
-import { runEngine } from "@tjalve/aiq-engine";
+import { createRunPlan, runEngine } from "@tjalve/aiq-engine";
 import {
+  type RunPlan,
+  type RunRequest,
   type RunResult,
   type RunStageConfigurations,
   type StageId,
@@ -49,6 +55,7 @@ export interface AiqMcpCheckResult {
   report: RunResult;
   reportPath?: string;
   text: string;
+  workflow?: AiqProgressRunSelection;
 }
 
 export interface AiqMcpExplainOptions extends Omit<AiqMcpCheckOptions, "files"> {
@@ -61,6 +68,21 @@ export interface AiqMcpExplainResult {
   report: RunResult;
   reportPath?: string;
   text: string;
+}
+
+export interface AiqMcpPlanResult {
+  files: string[];
+  plan: RunPlan;
+  text: string;
+  workflow?: AiqProgressRunSelection;
+}
+
+export interface AiqMcpStatusResult {
+  cwd: string;
+  profile: AiqProfileName;
+  stages: StageId[];
+  text: string;
+  workflow?: AiqProgressRunSelection;
 }
 
 export const aiqCheckFilesInputSchema = z.object({
@@ -87,11 +109,16 @@ export const aiqExplainDiagnosticsInputSchema = z
     },
   );
 
+export const aiqStatusInputSchema = z.object({
+  cwd: z.string().optional(),
+});
+
 interface ResolvedMcpSelection {
   cwd: string;
   stages: StageId[];
   stageConfigurations?: RunStageConfigurations;
   profile: AiqProfileName;
+  workflow?: AiqProgressRunSelection;
 }
 
 export class AiqMcpAdapter {
@@ -154,6 +181,37 @@ export class AiqMcpAdapter {
         ? {}
         : { reportPath: report.artifacts.reportPath }),
       text: formatRunResultAsText(report).trimEnd(),
+      ...(selection.workflow === undefined ? {} : { workflow: selection.workflow }),
+    };
+  }
+
+  async plan(options: AiqMcpCheckOptions): Promise<AiqMcpPlanResult> {
+    const cwd = path.resolve(options.cwd ?? this.cwd);
+    const files = normalizeExplicitFiles(cwd, options.files);
+    if (files.length === 0) {
+      throw new Error("MCP AIQ plans require at least one file.");
+    }
+
+    const selection = await this.resolveSelection(cwd, options);
+    const request = this.createRunRequest(selection, files, "plan", options);
+    const plan = await createRunPlan(request);
+    return {
+      files,
+      plan,
+      text: formatMcpPlanText(plan),
+      ...(selection.workflow === undefined ? {} : { workflow: selection.workflow }),
+    };
+  }
+
+  async status(options: { cwd?: string } = {}): Promise<AiqMcpStatusResult> {
+    const cwd = path.resolve(options.cwd ?? this.cwd);
+    const selection = await this.resolveSelection(cwd, {});
+    return {
+      cwd: selection.cwd,
+      profile: selection.profile,
+      stages: selection.stages,
+      text: formatMcpStatusText(selection),
+      ...(selection.workflow === undefined ? {} : { workflow: selection.workflow }),
     };
   }
 
@@ -203,13 +261,49 @@ export class AiqMcpAdapter {
     return report as RunResult;
   }
 
+  private createRunRequest(
+    selection: ResolvedMcpSelection,
+    files: readonly string[],
+    mode: RunRequest["mode"],
+    options: Pick<AiqMcpCheckOptions, "outDir" | "signal">,
+  ): RunRequest {
+    return {
+      context: "mcp",
+      cwd: selection.cwd,
+      manifest: {
+        files,
+        source: "direct",
+      },
+      mode,
+      ...(options.outDir === undefined ? {} : { outDir: options.outDir }),
+      stages: selection.stages,
+      ...(selection.stageConfigurations === undefined
+        ? {}
+        : { stageConfigurations: selection.stageConfigurations }),
+      profile: selection.profile,
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+      writeArtifacts: this.writeArtifacts,
+    };
+  }
+
   private async resolveSelection(
     cwd: string,
     options: Pick<AiqMcpCheckOptions, "stages" | "profile">,
   ): Promise<ResolvedMcpSelection> {
+    const progress =
+      this.stages === undefined &&
+      this.profile === undefined &&
+      options.stages === undefined &&
+      options.profile === undefined
+        ? await loadFileBackedProgress(cwd)
+        : undefined;
     const resolved = await this.resolveConfigImpl({
       cwd,
-      ...(this.stages === undefined ? {} : { stages: [...this.stages] }),
+      ...(this.stages === undefined
+        ? progress === undefined
+          ? {}
+          : { stages: resolveAiqProgressStageIds(progress.progress.current_stage) }
+        : { stages: [...this.stages] }),
       ...(this.profile === undefined ? {} : { profile: this.profile }),
       ...(options.stages === undefined
         ? {}
@@ -220,7 +314,12 @@ export class AiqMcpAdapter {
       surface: "mcp",
     });
 
-    return mapResolvedSelection(resolved);
+    return {
+      ...mapResolvedSelection(resolved),
+      ...(progress === undefined
+        ? {}
+        : { workflow: createAiqProgressRunSelection(progress, resolved.stages) }),
+    };
   }
 }
 
@@ -243,7 +342,13 @@ export function createAiqMcpServer(options: AiqMcpServerOptions = {}): McpServer
             {
               cwd: path.resolve(options.cwd ?? process.cwd()),
               readOnlyDefault: true,
-              toolNames: ["aiq_check_files", "aiq_explain_diagnostics"],
+              toolNames: [
+                "aiq_check_files",
+                "aiq_plan_files",
+                "aiq_status",
+                "aiq_doctor",
+                "aiq_explain_diagnostics",
+              ],
             },
             null,
             2,
@@ -276,7 +381,89 @@ export function createAiqMcpServer(options: AiqMcpServerOptions = {}): McpServer
           ok: result.ok,
           planPath: result.planPath,
           reportPath: result.reportPath,
+          workflow: result.workflow,
           status: result.report.summary.status,
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    "aiq_plan_files",
+    {
+      description: "Plan AIQ checks for explicit files without executing tools.",
+      inputSchema: aiqCheckFilesInputSchema,
+    },
+    async ({ files, outDir, stages, profile }) => {
+      const result = await adapter.plan({
+        files,
+        ...(outDir === undefined ? {} : { outDir }),
+        ...(stages === undefined ? {} : { stages }),
+        ...(profile === undefined ? {} : { profile }),
+      });
+
+      return {
+        content: [{ text: result.text, type: "text" }],
+        structuredContent: {
+          files: result.files,
+          profile: result.plan.profile,
+          stageCount: result.plan.summary.stageCount,
+          stages: result.plan.stages,
+          taskCount: result.plan.summary.taskCount,
+          workflow: result.workflow,
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    "aiq_status",
+    {
+      description: "Report AIQ MCP stage/profile status and current-stage defaults.",
+      inputSchema: aiqStatusInputSchema,
+    },
+    async ({ cwd }) => {
+      const result = await adapter.status({
+        ...(cwd === undefined ? {} : { cwd }),
+      });
+
+      return {
+        content: [{ text: result.text, type: "text" }],
+        structuredContent: {
+          cwd: result.cwd,
+          profile: result.profile,
+          stages: result.stages,
+          workflow: result.workflow,
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    "aiq_doctor",
+    {
+      description: "Validate AIQ MCP config/progress stage selection.",
+      inputSchema: aiqStatusInputSchema,
+    },
+    async ({ cwd }) => {
+      const result = await adapter.status({
+        ...(cwd === undefined ? {} : { cwd }),
+      });
+
+      return {
+        content: [{ text: `AIQ doctor\n${result.text}\nStatus: passed`, type: "text" }],
+        structuredContent: {
+          checks: [
+            {
+              name: "Config and progress selection resolved",
+              ok: true,
+            },
+          ],
+          cwd: result.cwd,
+          ok: true,
+          profile: result.profile,
+          stages: result.stages,
+          workflow: result.workflow,
         },
       };
     },
@@ -388,6 +575,34 @@ function mapResolvedSelection(resolved: ResolvedAiqConfig): ResolvedMcpSelection
       : { stageConfigurations: resolved.stageConfigurations }),
     profile: resolved.profile,
   };
+}
+
+function formatMcpPlanText(plan: RunPlan): string {
+  return [
+    "AIQ plan",
+    `Profile: ${plan.profile}`,
+    `Stages: ${plan.stages.length === 0 ? "none configured yet" : plan.stages.join(", ")}`,
+    `Files: ${plan.summary.fileCount}`,
+    `Tasks: ${plan.summary.taskCount}`,
+  ].join("\n");
+}
+
+function formatMcpStatusText(selection: ResolvedMcpSelection): string {
+  return [
+    "AIQ status",
+    `Profile: ${selection.profile}`,
+    `Stages: ${selection.stages.length === 0 ? "none configured yet" : selection.stages.join(", ")}`,
+    selection.workflow === undefined
+      ? undefined
+      : `Current stage: ${selection.workflow.currentStage.index} ${selection.workflow.currentStage.id}`,
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join("\n");
+}
+
+async function loadFileBackedProgress(cwd: string) {
+  const progress = await loadAiqProgress(cwd);
+  return progress.source === "file" ? progress : undefined;
 }
 
 function normalizeExplicitFiles(cwd: string, files: readonly string[]): string[] {
