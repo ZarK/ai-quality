@@ -12,7 +12,7 @@ import {
 import { resolveRunRequest } from "@tjalve/aiq-engine";
 import type { FileManifestInput, RunContext, RunRequest, StageId } from "@tjalve/aiq-model";
 
-import { readStdin, splitLines } from "./shared.js";
+import { isErrorCode, readStdin, splitLines } from "./shared.js";
 import type { CliIo, ParsedArgs } from "./types.js";
 import { cliStageShortcutIds } from "./types.js";
 
@@ -53,7 +53,19 @@ export async function createManifestInput(
   }
 
   if (parsed.filesFrom !== undefined) {
-    const fileList = await readFile(path.resolve(io.cwd, parsed.filesFrom), "utf8");
+    let fileList: string;
+    try {
+      fileList = await readFile(path.resolve(io.cwd, parsed.filesFrom), "utf8");
+    } catch (error) {
+      if (isErrorCode(error, "ENOENT")) {
+        throw new Error(
+          `File list not found: ${parsed.filesFrom}. Check the path or pass files directly with aiq run <paths...>.`,
+          { cause: error },
+        );
+      }
+
+      throw error;
+    }
     manifestFiles.push(...splitLines(fileList));
     sources.add("file-list");
   }

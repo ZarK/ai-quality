@@ -513,6 +513,7 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("AIQ first run");
     expect(stdout.value).toContain("AIQ run");
     expect(stdout.value).toContain("- typecheck: failed");
+    expect(stdout.value).toContain("Quality failures:");
     expect(stdout.value).toContain("First-run diagnostics:");
     expect(stdout.value).toContain("Remediation: fix the listed diagnostics");
   });
@@ -1639,6 +1640,7 @@ describe("CLI foundation", () => {
 
     expect(exitCode).toBe(2);
     expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("Input file not found:");
     expect(stderr.value).toContain("missing-cli-input.ts");
   });
 
@@ -1658,6 +1660,7 @@ describe("CLI foundation", () => {
 
     expect(exitCode).toBe(2);
     expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("Input file not found:");
     expect(stderr.value).toContain("missing-cli-flag-input.ts");
   });
 
@@ -1674,6 +1677,7 @@ describe("CLI foundation", () => {
 
     expect(exitCode).toBe(2);
     expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("File list not found:");
     expect(stderr.value).toContain("missing-files.txt");
   });
 
@@ -1691,6 +1695,7 @@ describe("CLI foundation", () => {
     ).resolves.toBe(2);
 
     expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("Input file not found:");
     expect(stderr.value).toContain("missing-watch-input.ts");
   });
 
@@ -2342,6 +2347,63 @@ describe("CLI foundation", () => {
     );
     expect(stdout.value).toContain("- lint: failed");
     expect(stdout.value).toContain("Biome reported");
+    expect(stdout.value).toContain("Quality failures:");
+    expect(stdout.value).toContain("Suggested next commands:");
+  });
+
+  it("groups Python missing setup failures in text output", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-python-missing-setup-"));
+    tempDirs.push(tempDir);
+    await writeFile(path.join(tempDir, "main.py"), "print('hello')\n", "utf8");
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+    const originalPath = process.env.PATH;
+    process.env.PATH = "";
+
+    try {
+      const exitCode = await runCli(["node", "aiq", "run", "main.py", "--stage", "typecheck"], {
+        cwd: tempDir,
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      });
+
+      expect(exitCode).toBe(1);
+      expect(stderr.value).toBe("");
+      expect(stdout.value).toContain("Missing tools:");
+      expect(stdout.value).toContain("[stage 3 typecheck]");
+      expect(stdout.value).toContain("aiq doctor");
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  });
+
+  it("groups external-tool language setup failures in text output", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-go-missing-lizard-"));
+    tempDirs.push(tempDir);
+    await writeFile(path.join(tempDir, "go.mod"), "module example.com/aiq\n\ngo 1.22\n", "utf8");
+    await writeFile(path.join(tempDir, "main.go"), "package main\n\nfunc main() {}\n", "utf8");
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+    const originalPath = process.env.PATH;
+    process.env.PATH = "";
+
+    try {
+      const exitCode = await runCli(["node", "aiq", "run", "main.go", "--stage", "sloc"], {
+        cwd: tempDir,
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      });
+
+      expect(exitCode).toBe(1);
+      expect(stderr.value).toBe("");
+      expect(stdout.value).toContain("Missing tools:");
+      expect(stdout.value).toContain("[stage 5 sloc]");
+      expect(stdout.value).toContain("lizard");
+    } finally {
+      process.env.PATH = originalPath;
+    }
   });
 
   it("renders plan output from direct file input and the default artifact directory", async () => {

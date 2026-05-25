@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { Diagnostic, RunPlan, RunResult } from "@tjalve/aiq-model";
+import type { Diagnostic, RunPlan, RunResult, StageId, StageResult } from "@tjalve/aiq-model";
 
 export interface GitHubAnnotation {
   endColumn?: number;
@@ -124,7 +124,217 @@ export function formatRunResultAsText(result: RunResult): string {
     }
   }
 
+  const problemGroups = collectProblemGroups(result);
+  if (problemGroups.length > 0) {
+    lines.push("");
+    lines.push("Problem summary:");
+    for (const group of problemGroups) {
+      lines.push(`${group.heading}:`);
+      lines.push(...group.items.map((item) => `  - ${item}`));
+    }
+    lines.push("Suggested next commands:");
+    lines.push("  - aiq doctor");
+    lines.push("  - aiq run <paths...> --only <stage-number> --verbose");
+    lines.push("  - aiq config --set-stage <0-9>");
+  }
+
   return `${lines.join("\n")}\n`;
+}
+
+type ProblemCategory =
+  | "Internal errors"
+  | "Missing tools"
+  | "Quality failures"
+  | "Setup issues"
+  | "Unsupported projects";
+
+interface ProblemGroup {
+  heading: ProblemCategory;
+  items: string[];
+}
+
+interface ProblemSummary {
+  category: ProblemCategory;
+  item: string;
+}
+
+const stageNumbers: Record<StageId, number> = {
+  e2e: 0,
+  lint: 1,
+  format: 2,
+  typecheck: 3,
+  unit: 4,
+  sloc: 5,
+  complexity: 6,
+  maintainability: 7,
+  coverage: 8,
+  security: 9,
+};
+
+const toolLanguageLabels = new Map<string, string>([
+  ["biome", "JavaScript/TypeScript"],
+  ["cargo", "Rust"],
+  ["cargo-check", "Rust"],
+  ["cargo-clippy", "Rust"],
+  ["cargo-fmt", "Rust"],
+  ["dotnet", ".NET"],
+  ["go", "Go"],
+  ["go test", "Go"],
+  ["go vet", "Go"],
+  ["gofmt", "Go"],
+  ["lizard", "shared metrics"],
+  ["pytest", "Python"],
+  ["pytest-cov", "Python"],
+  ["ruff", "Python"],
+  ["shellcheck", "Bash"],
+  ["shfmt", "Bash"],
+  ["stylelint", "CSS"],
+  ["terraform", "Terraform/HCL"],
+  ["ty", "Python"],
+  ["typescript", "TypeScript"],
+]);
+
+function collectProblemGroups(result: RunResult): ProblemGroup[] {
+  const summaries = result.stages.flatMap((stage) => summarizeStageProblems(stage));
+  const groups: ProblemGroup[] = [];
+
+  for (const heading of [
+    "Setup issues",
+    "Missing tools",
+    "Unsupported projects",
+    "Quality failures",
+    "Internal errors",
+  ] as const) {
+    const items = summaries
+      .filter((summary) => summary.category === heading)
+      .map((summary) => summary.item);
+    if (items.length > 0) {
+      groups.push({ heading, items });
+    }
+  }
+
+  return groups;
+}
+
+function summarizeStageProblems(stage: StageResult): ProblemSummary[] {
+  if (stage.status === "passed") {
+    return [];
+  }
+
+  const messages = [
+    ...stage.notes,
+    ...stage.diagnostics.map((diagnostic) => diagnostic.message),
+  ].filter((message) => message.trim().length > 0);
+  const text = messages.join("\n");
+  const firstMessage = messages[0] ?? `${stage.stageId} did not pass.`;
+
+  if (isMissingToolStage(stage, text)) {
+    return [
+      {
+        category: "Missing tools",
+        item: `${formatStageLabel(stage.stageId)} ${formatToolContext(stage)}${firstMessage} Fix: run aiq doctor, then install the reported tool through the project or language toolchain.`,
+      },
+    ];
+  }
+
+  if (stage.status === "not_implemented" || isUnsupportedProjectMessage(text)) {
+    return [
+      {
+        category: "Unsupported projects",
+        item: `${formatStageLabel(stage.stageId)} ${firstMessage} Fix: add the expected project config/tooling or select a supported stage.`,
+      },
+    ];
+  }
+
+  if (stage.diagnostics.length > 0) {
+    return [
+      {
+        category: "Quality failures",
+        item: `${formatStageLabel(stage.stageId)} ${stage.diagnostics.length} diagnostic${stage.diagnostics.length === 1 ? "" : "s"} from ${formatDiagnosticSources(stage.diagnostics)}. First: ${firstMessage}`,
+      },
+    ];
+  }
+
+  if (isSetupIssueMessage(text)) {
+    return [
+      {
+        category: "Setup issues",
+        item: `${formatStageLabel(stage.stageId)} ${firstMessage} Fix: inspect config with aiq config --print-config or run aiq doctor.`,
+      },
+    ];
+  }
+
+  return [
+    {
+      category: "Internal errors",
+      item: `${formatStageLabel(stage.stageId)} ${firstMessage} Re-run with --verbose; if it persists, inspect the generated artifacts.`,
+    },
+  ];
+}
+
+function formatStageLabel(stageId: StageId): string {
+  return `[stage ${stageNumbers[stageId]} ${stageId}]`;
+}
+
+function formatToolContext(stage: StageResult): string {
+  const source = stage.diagnostics[0]?.source ?? readToolFromMessage(stage.notes[0] ?? "");
+  if (source === undefined) {
+    return "";
+  }
+
+  const language = toolLanguageLabels.get(source);
+  return language === undefined ? `${source}: ` : `${language}/${source}: `;
+}
+
+function formatDiagnosticSources(diagnostics: readonly Diagnostic[]): string {
+  return [...new Set(diagnostics.map((diagnostic) => diagnostic.source))]
+    .sort((left, right) => left.localeCompare(right))
+    .join(", ");
+}
+
+function readToolFromMessage(message: string): string | undefined {
+  const match = /^([A-Za-z0-9_.-]+) was not detected\./u.exec(message);
+  return match?.[1];
+}
+
+function isMissingToolMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes(" was not detected") ||
+    lower.includes("command not found") ||
+    lower.includes("no such file or directory") ||
+    lower.includes("not recognized as the name of a cmdlet") ||
+    lower.includes("cannot find the file specified")
+  );
+}
+
+function isMissingToolStage(stage: StageResult, message: string): boolean {
+  if (isMissingToolMessage(message)) {
+    return true;
+  }
+
+  const missingExternalToolSources = new Set(["lizard", "shellcheck", "shfmt", "terraform"]);
+  return stage.diagnostics.some(
+    (diagnostic) =>
+      missingExternalToolSources.has(diagnostic.source) &&
+      diagnostic.message.toLowerCase().includes("exited with code unknown"),
+  );
+}
+
+function isUnsupportedProjectMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("no supported") ||
+    lower.includes("unsupported") ||
+    lower.includes("no javascript or typescript project roots") ||
+    lower.includes("no cargo manifest") ||
+    lower.includes("no go module")
+  );
+}
+
+function isSetupIssueMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes("config") || lower.includes("setup") || lower.includes("project");
 }
 
 function mapDiagnosticToGitHubAnnotation(

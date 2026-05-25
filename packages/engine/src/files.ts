@@ -16,7 +16,14 @@ export async function normalizeFileManifest(
     }
 
     const resolved = path.resolve(cwd, trimmed);
-    await access(resolved);
+    try {
+      await access(resolved);
+    } catch (error) {
+      throw new Error(
+        `Input file not found: ${trimmed}. Check the path, run from the project root, or pass an existing file list with --files-from.`,
+        { cause: error },
+      );
+    }
     unique.add(resolved);
   }
 
