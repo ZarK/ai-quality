@@ -1,0 +1,25 @@
+pnpm-workspace.yaml
+  s_638a02645ec1ca::t_dd64c3ba103397 19
+AGENTS.md
+  s_638a02645ec1ca::t_dd64c3ba103397 132,140
+plugins/ai-umpire/hooks/hooks.json
+  s_638a02645ec1ca::t_dd64c3ba103397 2-13
+plugins/ai-umpire/.codex-plugin/plugin.json
+  s_638a02645ec1ca::t_dd64c3ba103397 34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "3497faac1c28e64206e9624b0c48363a90a88627",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
