@@ -501,17 +501,15 @@ export async function runFirstRunCommand(parsed: ParsedArgs, io: CliIo): Promise
 export async function runCheckCommand(parsed: ParsedArgs, io: CliIo): Promise<number> {
   const outputCommand = parsed.command === "run" ? "run" : "check";
   let request: RunRequest;
-  let loadedProgress: Awaited<ReturnType<typeof loadAiqProgress>>;
+  let loadedProgress: Awaited<ReturnType<typeof loadAiqProgress>> | undefined;
   try {
-    [request, loadedProgress] = await Promise.all([
-      createRunRequest(parsed, io, {
-        context: "cli",
-        includeProgressStage: true,
-        mode: "check",
-        surface: "cli",
-      }),
-      loadAiqProgress(io.cwd),
-    ]);
+    request = await createRunRequest(parsed, io, {
+      context: "cli",
+      includeProgressStage: true,
+      mode: "check",
+      surface: "cli",
+    });
+    loadedProgress = await loadOptionalRunProgress(parsed, io);
   } catch (error) {
     io.stderr.write(`${formatError(error)}\n`);
     return 2;
@@ -529,7 +527,9 @@ export async function runCheckCommand(parsed: ParsedArgs, io: CliIo): Promise<nu
     io.stdout.write(
       formatRunResultOutput(parsed.format, result, outputCommand, {
         verbose: parsed.verbose,
-        workflow: createRunWorkflowOutput(loadedProgress, request, result),
+        ...(loadedProgress === undefined
+          ? {}
+          : { workflow: createRunWorkflowOutput(loadedProgress, request, result) }),
       }),
     );
     return result.ok ? 0 : 1;
@@ -660,6 +660,21 @@ function createRunWorkflowOutput(
     progressSource: loadedProgress.source,
     selectedStages: [...(request.stages ?? [])],
   };
+}
+
+async function loadOptionalRunProgress(
+  parsed: ParsedArgs,
+  io: CliIo,
+): Promise<Awaited<ReturnType<typeof loadAiqProgress>> | undefined> {
+  try {
+    return await loadAiqProgress(io.cwd);
+  } catch (error) {
+    if (parsed.stages.length > 0 || parsed.profile !== undefined) {
+      return undefined;
+    }
+
+    throw error;
+  }
 }
 
 function createDefaultRunOutput(currentStageIndex: number) {
