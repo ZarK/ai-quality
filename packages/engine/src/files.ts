@@ -16,7 +16,20 @@ export async function normalizeFileManifest(
     }
 
     const resolved = path.resolve(cwd, trimmed);
-    await access(resolved);
+    try {
+      await access(resolved);
+    } catch (error) {
+      if (isErrorCode(error, "ENOENT")) {
+        throw new Error(
+          `Input file not found: ${trimmed}. Check the path, run from the project root, or pass an existing file list with --files-from.`,
+          { cause: error },
+        );
+      }
+
+      throw new Error(`Unable to access input file: ${trimmed}. ${formatAccessError(error)}`, {
+        cause: error,
+      });
+    }
     unique.add(resolved);
   }
 
@@ -37,4 +50,17 @@ export async function normalizeFileManifest(
       fileCount: files.length,
     },
   };
+}
+
+function isErrorCode(error: unknown, code: string): error is NodeJS.ErrnoException {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === code
+  );
+}
+
+function formatAccessError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

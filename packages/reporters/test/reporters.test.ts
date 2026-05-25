@@ -2,7 +2,11 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 import type { RunResult } from "../../model/src/index.js";
-import { collectGitHubAnnotations, formatRunResultAsGitHubAnnotations } from "../src/index.js";
+import {
+  collectGitHubAnnotations,
+  formatRunResultAsGitHubAnnotations,
+  formatRunResultAsText,
+} from "../src/index.js";
 
 describe("reporters", () => {
   it("maps engine diagnostics to GitHub annotations with relative paths", () => {
@@ -60,6 +64,71 @@ describe("reporters", () => {
 
     expect(output).toBe("::warning file=README.md,title=AIQ/aiq::Line one%0ALine two\n");
   });
+
+  it("groups human output into actionable problem categories", () => {
+    const workspaceRoot = path.join(path.sep, "repo");
+    const missingPython = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [
+        {
+          file: path.join(workspaceRoot, "src", "main.py"),
+          message: "ty was not detected. Install Astral ty to run Python typecheck.",
+          severity: "error",
+          source: "ty",
+        },
+      ],
+      stageId: "typecheck",
+      status: "failed",
+    });
+    const unsupportedJs = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [],
+      notes: ["No supported JavaScript or TypeScript test runner was detected for unit in: ."],
+      stageId: "unit",
+      status: "not_implemented",
+    });
+    const qualityFailure = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [
+        {
+          file: path.join(workspaceRoot, "src", "index.ts"),
+          message: "Unexpected var, use let or const instead.",
+          severity: "error",
+          source: "biome",
+        },
+      ],
+      stageId: "lint",
+      status: "failed",
+    });
+    const setupFailure = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [
+        {
+          file: workspaceRoot,
+          message: "Project config is missing required test runner settings.",
+          severity: "error",
+          source: "aiq",
+        },
+      ],
+      stageId: "unit",
+      status: "failed",
+    });
+    const multiWordTool = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [],
+      notes: ["go test was not detected. Install Go to run unit tests."],
+      stageId: "unit",
+      status: "failed",
+    });
+
+    expect(formatRunResultAsText(missingPython)).toContain("Missing tools:");
+    expect(formatRunResultAsText(missingPython)).toContain("[stage 3 typecheck] Python/ty");
+    expect(formatRunResultAsText(unsupportedJs)).toContain("Unsupported projects:");
+    expect(formatRunResultAsText(qualityFailure)).toContain("Quality failures:");
+    expect(formatRunResultAsText(qualityFailure)).toContain("Suggested next commands:");
+    expect(formatRunResultAsText(setupFailure)).toContain("Setup issues:");
+    expect(formatRunResultAsText(multiWordTool)).toContain("Go/go test");
+  });
 });
 
 function createRunResult(options: {
@@ -77,7 +146,12 @@ function createRunResult(options: {
     severity: "error" | "info" | "warning";
     source: string;
   }>;
+  notes?: string[];
+  stageId?: RunResult["stages"][number]["stageId"];
+  status?: RunResult["stages"][number]["status"];
 }): RunResult {
+  const stageId = options.stageId ?? "lint";
+  const status = options.status ?? (options.diagnostics.length === 0 ? "passed" : "failed");
   const result: RunResult = {
     artifactType: "report",
     artifactVersion: 1,
@@ -96,9 +170,9 @@ function createRunResult(options: {
       {
         diagnostics: options.diagnostics,
         durationMs: 1,
-        notes: [],
-        stageId: "lint",
-        status: options.diagnostics.length === 0 ? "passed" : "failed",
+        notes: options.notes ?? [],
+        stageId,
+        status,
         toolRuns: [],
       },
     ],
@@ -123,7 +197,7 @@ function createRunResult(options: {
           fileCount: options.diagnostics.length,
         },
       },
-      stages: ["lint"],
+      stages: [stageId],
       profile: "deep",
       runId: "run_123",
       summary: {
@@ -136,7 +210,7 @@ function createRunResult(options: {
           fileCount: options.diagnostics.length,
           files: options.diagnostics.map((diagnostic) => diagnostic.file),
           id: "task_123",
-          stageId: "lint",
+          stageId,
         },
       ],
     },
@@ -158,7 +232,7 @@ function createRunResult(options: {
       mode: "check",
       outDir: path.join(options.cwd, ".aiq", "out"),
       selection: {
-        stages: ["lint"],
+        stages: [stageId],
         profile: "deep",
       },
       writeArtifacts: true,
@@ -172,9 +246,9 @@ function createRunResult(options: {
       diagnosticCount: options.diagnostics.length,
       durationMs: 1,
       fileCount: options.diagnostics.length,
-      notImplementedStageCount: 0,
+      notImplementedStageCount: status === "not_implemented" ? 1 : 0,
       stageCount: 1,
-      status: options.diagnostics.length === 0 ? "passed" : "failed",
+      status,
       taskCount: 1,
       toolDurationMs: 0,
       toolRunCount: 0,
