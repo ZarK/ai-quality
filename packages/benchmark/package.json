@@ -19,11 +19,12 @@
     "@tjalve/aiq-engine": "0.2.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZarK/aiq.git",
+    "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/benchmark"
   }
 }

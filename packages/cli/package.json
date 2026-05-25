@@ -5,8 +5,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aiq": "./dist/bin/aiq.js",
-    "quality": "./dist/bin/aiq.js"
+    "aiq": "dist/bin/aiq.js",
+    "quality": "dist/bin/aiq.js"
   },
   "exports": {
     ".": {
@@ -27,7 +27,8 @@
     "@tjalve/aiq-reporters": "0.2.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",

@@ -45,6 +45,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZarK/aiq.git"
-  }
+    "url": "git+https://github.com/ZarK/ai-quality.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ZarK/ai-quality/issues"
+  },
+  "homepage": "https://github.com/ZarK/ai-quality#readme"
 }

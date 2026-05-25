@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aiq-mcp": "./dist/bin/aiq-mcp.js"
+    "aiq-mcp": "dist/bin/aiq-mcp.js"
   },
   "exports": {
     ".": {
@@ -26,11 +26,12 @@
     "zod": "4.3.6"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZarK/aiq.git",
+    "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/mcp"
   }
 }

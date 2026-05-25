@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aiq-hook": "./dist/bin/aiq-hook.js"
+    "aiq-hook": "dist/bin/aiq-hook.js"
   },
   "exports": {
     ".": {
@@ -24,11 +24,12 @@
     "@tjalve/aiq-reporters": "0.2.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZarK/aiq.git",
+    "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/hook"
   }
 }
