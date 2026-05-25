@@ -10,10 +10,11 @@ pnpm run build
 pnpm run lint
 pnpm test
 pnpm run bench:ci
+pnpm run test:publish-readiness
 pnpm run test:smoke
 ```
 
-Use `pnpm run build` before packaging so workspace packages have fresh `dist` output. Use `pnpm test` for the full Vitest suite, `pnpm run bench:ci` for the CI benchmark subset, and `pnpm run test:smoke` for the packed CLI smoke test.
+Use `pnpm run build` before packaging so workspace packages have fresh `dist` output. Use `pnpm test` for the full Vitest suite, `pnpm run bench:ci` for the CI benchmark subset, and `pnpm run test:publish-readiness` for the packed npm UX gate.
 
 ## Workspace Packages
 
@@ -38,4 +39,4 @@ npm pack --workspace @tjalve/aiq --dry-run
 node scripts/run-smoke-tests.mjs
 ```
 
-`packages/cli/README.md` is the published npm README for `@tjalve/aiq`. Keep user-facing CLI onboarding there and keep this root README focused on contributor workflow.
+`packages/cli/README.md` is the published npm README for `@tjalve/aiq`. Keep user-facing CLI onboarding there and keep this root README focused on contributor workflow. `pnpm run test:publish-readiness` packs and installs the workspace packages before checking the npm-facing CLI contract.
