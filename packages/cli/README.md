@@ -1,0 +1,79 @@
+# @tjalve/aiq
+
+AIQ is a staged code quality runner for AI-assisted repositories. It gives humans and agents one stage ladder, one persisted current stage, and one command to run the checks that matter now.
+
+## Quickstart
+
+```bash
+npx @tjalve/aiq
+npx @tjalve/aiq doctor
+npx @tjalve/aiq config --set-stage 3
+npx @tjalve/aiq run .
+```
+
+On first use, `aiq` looks for a supported project and initializes `.aiq/aiq.config.json` and `.aiq/progress.json` when it can safely infer inputs. After that, `aiq run <paths...>` uses `.aiq/progress.json` and runs every stage from `0` through the persisted `current_stage`.
+
+## Returning Runs
+
+```bash
+npx @tjalve/aiq run src
+npx @tjalve/aiq plan src
+npx @tjalve/aiq run src --dry-run
+npx @tjalve/aiq run src --format json
+```
+
+`run` is the primary command. `plan` shows what would run. `--dry-run` prints the resolved plan without executing tools or writing artifacts. `check` remains available as a compatibility alias for older automation.
+
+## Stage Ladder
+
+| # | Stage | Scope |
+|---|---|---|
+| 0 | e2e | full run |
+| 1 | lint | diff-scoped |
+| 2 | format | diff-scoped |
+| 3 | typecheck | full run |
+| 4 | unit | full run |
+| 5 | sloc | diff-scoped |
+| 6 | complexity | diff-scoped |
+| 7 | maintainability | diff-scoped |
+| 8 | coverage | full run |
+| 9 | security | full run |
+
+## Stage Selection
+
+```bash
+npx @tjalve/aiq config --set-stage 6
+npx @tjalve/aiq run src
+npx @tjalve/aiq run src --up-to 3
+npx @tjalve/aiq run src --only 1
+npx @tjalve/aiq run src --stage typecheck
+```
+
+- Default `run`, `plan`, and `doctor`: use cumulative stages `0..current_stage` when `.aiq/progress.json` exists.
+- `--up-to N`: ignore persisted progress and run every stage from `0` through `N`.
+- `--only N`: run one numeric stage.
+- `--stage <name>`: advanced named-stage selection for scripts or focused diagnostics.
+- `--diff-only`: scopes diff-safe stages to supplied changed files.
+
+Full-run stages stay selected and use workspace context because they cannot be made safe from a changed-file list alone: `e2e`, `typecheck`, `unit`, `coverage`, and `security`.
+
+## Doctor
+
+```bash
+npx @tjalve/aiq doctor
+npx @tjalve/aiq doctor --up-to 3
+npx @tjalve/aiq doctor --only 1
+npx @tjalve/aiq doctor --verbose
+```
+
+`doctor` checks config/progress state, detects project technologies, reports the stages that would run, and separates npm-bundled tools from external host tools. It exits non-zero when selected stages need missing required setup. Use `--verbose` to show exact binary paths and versions.
+
+## Common Remediation
+
+```bash
+npx @tjalve/aiq doctor
+npx @tjalve/aiq config --print-config
+npx @tjalve/aiq config --set-stage <0-9>
+```
+
+If a tool is missing, install it through the normal toolchain for that language or project. AIQ intentionally reports setup needs instead of mutating your system or installing global tools for you.

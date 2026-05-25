@@ -14,6 +14,7 @@
       "import": "./dist/index.js"
     }
   },
+  "homepage": "https://github.com/ZarK/ai-quality/tree/main/packages/cli#readme",
   "files": ["dist"],
   "scripts": {
     "build": "tsc -b"
@@ -30,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZarK/aiq.git",
+    "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/cli"
   }
 }
