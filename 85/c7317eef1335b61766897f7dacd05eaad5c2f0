@@ -1,0 +1,30 @@
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_3720c0ccae5c34 3911
+  s_638a02645ec1ca::t_5b7873eef44671 180-185,188,194-197,202-206,209-213,227,242
+  s_638a02645ec1ca::t_cb6cabb41d3559 230-235,3866,3868
+  s_638a02645ec1ca::t_f2f4b789a20e13 3867,3869-3877,3903-3910,3912-3913,3994-4003
+.github/workflows/ci.yml
+  s_638a02645ec1ca::t_1aad83659a51d5 79-80
+README.md
+  s_638a02645ec1ca::t_b0c93df26950b2 13,17,42
+package.json
+  s_638a02645ec1ca::t_fb8bd7d7a18c41 30
+.github/workflows/publish.yml
+  s_638a02645ec1ca::t_93b2f04090105d 83-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "85c7317eef1335b61766897f7dacd05eaad5c2f0",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
