@@ -40,3 +40,7 @@ node scripts/run-smoke-tests.mjs
 ```
 
 `packages/cli/README.md` is the published npm README for `@tjalve/aiq`. Keep user-facing CLI onboarding there and keep this root README focused on contributor workflow. `pnpm run test:publish-readiness` packs and installs the workspace packages before checking the npm-facing CLI contract.
+
+## Publishing
+
+Push a `publish-*` tag from a commit reachable from `main` to start the npm staging workflow. The publish job uses npm Trusted Publishing with the `npm-publish` environment and stages packages for npm approval; it does not use an npm token.

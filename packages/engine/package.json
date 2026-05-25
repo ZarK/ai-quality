@@ -29,11 +29,12 @@
     "yaml": "2.8.3"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZarK/aiq.git",
+    "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/engine"
   }
 }

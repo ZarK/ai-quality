@@ -29,6 +29,19 @@ const packageSmokeWorkspaces = [
   "packages/reporters",
   "packages/cli",
 ] as const;
+const publishedPackageWorkspaces = [
+  "packages/benchmark",
+  "packages/cli",
+  "packages/config-schema",
+  "packages/engine",
+  "packages/github-action",
+  "packages/hook",
+  "packages/lsp",
+  "packages/mcp",
+  "packages/model",
+  "packages/opencode-plugin",
+  "packages/reporters",
+] as const;
 const describePackageSmoke = process.env.AIQ_SMOKE === "1" ? describe : describe.skip;
 
 let packageSmokeBuildPromise: Promise<void> | undefined;
@@ -303,14 +316,38 @@ afterEach(async () => {
 });
 
 describe("CLI foundation", () => {
+  it("keeps published package metadata aligned with the clean repository", async () => {
+    for (const workspace of publishedPackageWorkspaces) {
+      const packageJson = JSON.parse(
+        await readFile(path.join(repoRoot, workspace, "package.json"), "utf8"),
+      ) as {
+        bin?: Record<string, string>;
+        files: string[];
+        publishConfig: { access: string; provenance: boolean };
+        repository: { directory: string; type: string; url: string };
+      };
+
+      expect(packageJson.publishConfig).toEqual({ access: "public", provenance: true });
+      expect(packageJson.repository).toEqual({
+        directory: workspace,
+        type: "git",
+        url: "git+https://github.com/ZarK/ai-quality.git",
+      });
+      expect(packageJson.files).toContain("dist");
+      expect(
+        Object.values(packageJson.bin ?? {}).every((binPath) => !binPath.startsWith("./")),
+      ).toBe(true);
+    }
+  });
+
   it("restores the published quality bin alias", async () => {
     const packageJson = JSON.parse(
       await readFile(path.join(repoRoot, "packages", "cli", "package.json"), "utf8"),
     ) as { bin?: Record<string, string> };
 
     expect(packageJson.bin).toMatchObject({
-      aiq: "./dist/bin/aiq.js",
-      quality: "./dist/bin/aiq.js",
+      aiq: "dist/bin/aiq.js",
+      quality: "dist/bin/aiq.js",
     });
   });
 
