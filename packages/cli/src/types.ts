@@ -105,7 +105,7 @@ Usage:
   aiq watch <files...> [--files <files...>] [--files-from path] [--stdin-file-list]
   aiq serve [--host <host>] [--port <port>]
 
-Run is the primary command. With no arguments, aiq looks for a supported project in the current directory and runs the current stage when it is safe to infer one.
+Run is the primary command. With no arguments, aiq looks for a supported project in the current directory and runs cumulative stages up to the current stage when it is safe to infer one.
 A leading file path is treated as aiq run.
 Check is kept as a compatibility alias for existing automation.
 
@@ -137,7 +137,7 @@ Stage ladder:
   0=e2e 1=lint 2=format 3=typecheck 4=unit 5=sloc 6=complexity 7=maintainability 8=coverage 9=security
 
 Stage selection:
-  By default aiq run uses .aiq/progress.json current_stage when present, otherwise the configured CLI profile stages.
+  By default aiq run and aiq plan use cumulative ladder stages 0 through .aiq/progress.json current_stage when present, otherwise the configured CLI profile stages.
   --only N runs one stage from the ladder.
   --up-to N runs every ladder stage from 0 through N.
   --diff-only scopes safe file-local stages to the supplied changed-file manifest: lint, format, sloc, complexity, maintainability.

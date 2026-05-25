@@ -151,7 +151,7 @@ export async function runPlanCommand(parsed: ParsedArgs, io: CliIo): Promise<num
   try {
     request = await createRunRequest(parsed, io, {
       context: "cli",
-      includeProgressStage: false,
+      includeProgressStage: true,
       mode: "plan",
       surface: "cli",
     });
@@ -269,7 +269,7 @@ export async function runFirstRunCommand(parsed: ParsedArgs, io: CliIo): Promise
     };
     request = await createRunRequest(firstRunParsed, io, {
       context: "cli",
-      includeProgressStage: true,
+      includeProgressStage: !initialization.progressCreated,
       mode: "check",
       surface: "cli",
     });

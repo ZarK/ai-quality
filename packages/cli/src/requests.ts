@@ -190,7 +190,8 @@ async function resolveProgressStageOverrides(
   if (
     !options.includeProgressStage ||
     options.stageOverrides !== undefined ||
-    parsed.stages.length > 0
+    parsed.stages.length > 0 ||
+    parsed.profile !== undefined
   ) {
     return undefined;
   }
@@ -200,14 +201,13 @@ async function resolveProgressStageOverrides(
     return undefined;
   }
 
-  const stage = cliStageShortcutIds[progress.progress.current_stage];
-  if (stage === undefined) {
+  if (progress.progress.current_stage >= cliStageShortcutIds.length) {
     throw new Error(
       `${progress.path}.current_stage must be a stage index from 0 to ${cliStageShortcutIds.length - 1}.`,
     );
   }
 
-  return [stage];
+  return [...cliStageShortcutIds.slice(0, progress.progress.current_stage + 1)];
 }
 
 function resolveManifestSource(
