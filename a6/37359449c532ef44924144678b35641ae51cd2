@@ -1,0 +1,39 @@
+packages/hook/test/hook.test.ts
+  s_638a02645ec1ca::t_3ba1898cc13a09 10,304-308
+packages/config-schema/test/config-schema.test.ts
+  s_638a02645ec1ca::t_b4897db275b283 84-87
+packages/opencode-plugin/src/index.ts
+  s_638a02645ec1ca::t_868bb129e777a2 214-218,220-223,228,232-235,446-459
+packages/config-schema/src/index.ts
+  s_638a02645ec1ca::t_d72cd82747050b 468-470,472-475
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_456b2b9f35bdac 10,13
+  s_638a02645ec1ca::t_0faaec0142e6e2 1527-1552
+packages/hook/src/bin/aiq-hook.ts
+  s_638a02645ec1ca::t_65901e774c4899 51-59,65,75,81
+  s_638a02645ec1ca::t_fc55fbee2253dc 3,19,40-42,48
+packages/opencode-plugin/test/opencode-plugin.test.ts
+  s_638a02645ec1ca::t_894feee6b4b6c2 174-178,183-188
+packages/cli/src/workflow.ts
+  s_638a02645ec1ca::t_43d7324ac5856b 4,24-28
+packages/mcp/test/mcp.test.ts
+  s_638a02645ec1ca::t_f7e1a24786ca63 144-148,153-158
+packages/mcp/src/index.ts
+  s_638a02645ec1ca::t_ef2a82871cef19 293-297,299-302,307,311-314,638-651
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "a637359449c532ef44924144678b35641ae51cd2",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
