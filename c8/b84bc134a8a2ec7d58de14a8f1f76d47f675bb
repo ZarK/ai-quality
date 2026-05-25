@@ -1,0 +1,19 @@
+packages/cli/src/commands.ts
+  s_638a02645ec1ca::t_917d78424d4839 688-690
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "c8b84bc134a8a2ec7d58de14a8f1f76d47f675bb",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
