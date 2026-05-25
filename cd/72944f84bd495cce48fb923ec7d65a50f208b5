@@ -1,0 +1,46 @@
+packages/mcp/package.json
+  s_638a02645ec1ca::t_c07f5bbf43123e 21,26
+scripts/build-github-action-bundle.mjs
+  s_638a02645ec1ca::t_ba9be44b5f84e8 2,9-11,14-16,18
+.gitignore
+  s_638a02645ec1ca::t_c07f5bbf43123e 84
+  s_638a02645ec1ca::t_cd8fb44c6fbe22 100-104
+pnpm-workspace.yaml
+  s_638a02645ec1ca::t_30e2bd9e3257e2 1-13,15-17,20-23,25-26
+  s_638a02645ec1ca::t_9472af739c6a1e 14
+  s_638a02645ec1ca::t_f459a5fb0c1b79 18-19
+  s_638a02645ec1ca::t_9f9c828cae7132 24
+AGENTS.md
+  s_638a02645ec1ca::t_c07f5bbf43123e 102-106,111,119,121,125,159,220-326
+.github/workflows/publish.yml
+  s_638a02645ec1ca::t_6233ef1fbf45f8 23-24,27-30,77,80,83,86,89,92
+packages/opencode-plugin/package.json
+  s_638a02645ec1ca::t_c73e53230d0d03 18
+.npmrc
+  s_638a02645ec1ca::t_30e2bd9e3257e2 1-2
+packages/github-action/package.json
+  s_638a02645ec1ca::t_c07f5bbf43123e 18-19
+.github/workflows/ci.yml
+  s_638a02645ec1ca::t_6233ef1fbf45f8 19-26,73,76,79,82,85,88
+packages/engine/package.json
+  s_638a02645ec1ca::t_c07f5bbf43123e 21,23-29
+package.json
+  s_638a02645ec1ca::t_30e2bd9e3257e2 6,8,36-37
+  s_638a02645ec1ca::t_c07f5bbf43123e 35,38-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "cd72944f84bd495cce48fb923ec7d65a50f208b5",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": null
+    }
+  }
+}
