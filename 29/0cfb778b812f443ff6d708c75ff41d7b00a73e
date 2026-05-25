@@ -1,0 +1,44 @@
+packages/cli/src/index.ts
+  s_638a02645ec1ca::t_91793c6e25284e 16,56-57
+packages/cli/src/output.ts
+  s_638a02645ec1ca::t_18827146183ea1 110,119-122,262-264
+  s_638a02645ec1ca::t_674bb22d9bc18e 76-96,104-109,111-118,123-131,161,164-166,177-184,186,250-261,265-275,336-397
+  s_638a02645ec1ca::t_8db93b3135c881 10
+packages/cli/src/types.ts
+  s_638a02645ec1ca::t_f975c565cda195 18,101,121,163
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_28db703242e64f 1566
+  s_638a02645ec1ca::t_5b08b769ba6a3d 1529-1534,1569-1571
+  s_638a02645ec1ca::t_ecde1c7e7923aa 1501-1506
+  s_638a02645ec1ca::t_9a150b1a616e11 1620
+  s_638a02645ec1ca::t_810d5a02183c76 460-485
+  s_638a02645ec1ca::t_fc664802575a41 486-488
+  s_638a02645ec1ca::t_c7a9f7fd2952ba 1515-1528,1535-1565,1567-1568,1572-1619,1621-1660
+  s_638a02645ec1ca::t_8c73a9ac993dbf 319,343
+packages/cli/src/commands.ts
+  s_638a02645ec1ca::t_21a8515c30252b 376-393,395-398,400-401,408-420
+  s_638a02645ec1ca::t_73ed96fc7d9b6c 614-620,623
+  s_638a02645ec1ca::t_9ca2b08e9280db 52
+  s_638a02645ec1ca::t_0a41c198fd501f 394,399,402-407,559,568,581,591,602,628,686,715-720,727-756
+  s_638a02645ec1ca::t_fb161f774e7972 504,506-514,530-533
+  s_638a02645ec1ca::t_034357c7543a7e 3,14-21,43-44,47-51,53
+  s_638a02645ec1ca::t_ee88973d2e96c2 542-558,560-567,569-580,582-590,592-601,603-613,621-622,624-627,629-685,687-714,721-726,757-770
+packages/cli/src/args.ts
+  s_638a02645ec1ca::t_0b55bee745f87e 35,295-312
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "290cfb778b812f443ff6d708c75ff41d7b00a73e",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
