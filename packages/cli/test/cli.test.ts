@@ -1440,12 +1440,12 @@ describe("CLI foundation", () => {
     expect(output.plan.stages).toEqual(["security"]);
   });
 
-  it("fails fast on malformed progress state", async () => {
+  it.each([12, -1])("fails fast on malformed progress stage %i", async (currentStage) => {
     const project = await createTypeScriptFixtureProject("aiq-cli-progress-invalid-");
     await mkdir(path.join(project.root, ".aiq"), { recursive: true });
     await writeFile(
       path.join(project.root, ".aiq", "progress.json"),
-      '{"current_stage":12,"disabled":[],"order":[0],"last_run":null}\n',
+      `${JSON.stringify({ current_stage: currentStage, disabled: [], order: [0], last_run: null })}\n`,
       "utf8",
     );
     const stdout = new MemoryOutput();
