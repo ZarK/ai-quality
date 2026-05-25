@@ -1,0 +1,36 @@
+{
+  "name": "@tjalve/aiq-mcp",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "aiq-mcp": "./dist/bin/aiq-mcp.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@tjalve/aiq-config-schema": "0.2.0",
+    "@tjalve/aiq-model": "0.2.0",
+    "@tjalve/aiq-engine": "0.2.0",
+    "@tjalve/aiq-reporters": "0.2.0",
+    "zod": "^4.1.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZarK/aiq.git",
+    "directory": "packages/mcp"
+  }
+}

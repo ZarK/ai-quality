@@ -1,0 +1,34 @@
+{
+  "name": "@tjalve/aiq-hook",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "aiq-hook": "./dist/bin/aiq-hook.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@tjalve/aiq-config-schema": "0.2.0",
+    "@tjalve/aiq-model": "0.2.0",
+    "@tjalve/aiq-engine": "0.2.0",
+    "@tjalve/aiq-reporters": "0.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZarK/aiq.git",
+    "directory": "packages/hook"
+  }
+}
