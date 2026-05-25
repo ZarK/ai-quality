@@ -1,0 +1,35 @@
+packages/cli/src/output.ts
+  s_638a02645ec1ca::t_f69dfbf201a996 37,41,48,184,243-246
+packages/cli/src/commands.ts
+  s_638a02645ec1ca::t_48df1f85d08da8 851-866
+  s_638a02645ec1ca::t_25d27f99ecac38 462-463,465-476,478-491,493-502,504-506,508-635,637-657,659-679,681-701,703-723,725-772,774-850,867-870,873,877,888-893,900-909
+  s_638a02645ec1ca::t_e70c5f737086f9 2,477
+  s_638a02645ec1ca::t_a2dfa9cd6acb8c 271-275,277-282,284,286-295,297,299-311,323-324,333
+  s_638a02645ec1ca::t_dff62f8a1640bc 283,285
+  s_638a02645ec1ca::t_aecdd7c00e8c5e 3-4,15,38,94-175
+  s_638a02645ec1ca::t_6d17601242c4e2 47,53,59,65,71,77,83,89,93
+  s_638a02645ec1ca::t_f95d8b66256f45 464,492
+  s_638a02645ec1ca::t_467b1f65229bf6 503,507
+packages/cli/src/args.ts
+  s_638a02645ec1ca::t_7f020213a1800f 207,209-211,288-290
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_49e0ce55e79db1 1061,1086-1093,1097,1115-1212
+packages/cli/src/types.ts
+  s_638a02645ec1ca::t_f59298e608fd8b 99,159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "3f670a131f0a7325ed5fd985306038008c8d0878",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
