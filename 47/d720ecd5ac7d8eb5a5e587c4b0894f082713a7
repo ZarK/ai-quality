@@ -1,0 +1,30 @@
+packages/reporters/src/index.ts
+  s_638a02645ec1ca::t_2a9090e5e7a4a0 3,127-140,144-230,232-307,321-337
+  s_638a02645ec1ca::t_a29cb19e5e435f 231,308-320
+packages/engine/src/files.ts
+  s_638a02645ec1ca::t_ea16186ae341fb 19-26
+packages/cli/src/requests.ts
+  s_638a02645ec1ca::t_0c6208affbe897 15,56-68
+packages/reporters/test/reporters.test.ts
+  s_638a02645ec1ca::t_e5edb11f3584b3 5-9,67-109,127-129,131-132,151-153,178,191,227,229
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_c1c1640ada66bf 1698
+  s_638a02645ec1ca::t_6111bb724951b9 2350-2406
+  s_638a02645ec1ca::t_8540117820c7b4 516,1643,1663,1680
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "47d720ecd5ac7d8eb5a5e587c4b0894f082713a7",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
