@@ -1,0 +1,19 @@
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_6f0af31ec78a03 213-218,3389-3393,3408-3438,3440-3451,3454-3475,3477,3479,3484,3488-3493
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "55e5503b46ea5d75a6ffc88d4311dff33c32100c",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
