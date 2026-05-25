@@ -1,0 +1,67 @@
+packages/cli/src/workflow.ts
+  s_638a02645ec1ca::t_bfa931939d1522 23-31
+  s_638a02645ec1ca::t_a21a0ecc4197b9 13-16,72-73
+  s_638a02645ec1ca::t_73753a87831794 1-11,17-22,32-71,75-94
+  s_638a02645ec1ca::t_c1ef03b067e83e 12,74
+packages/cli/src/types.ts
+  s_638a02645ec1ca::t_51c688cec6f025 2-6,73
+packages/cli/src/watch.ts
+  s_638a02645ec1ca::t_2415b04b4602fa 4
+  s_638a02645ec1ca::t_7a90877cd0b581 20,31,192-204,290-294,332,336,376,386-388,395-404
+packages/hook/src/index.ts
+  s_638a02645ec1ca::t_751ba522c540da 5-12,51,59,147,159-162,165-169,181-183,273-276
+packages/mcp/test/mcp.test.ts
+  s_638a02645ec1ca::t_a2f4f6e6e3436f 1
+  s_638a02645ec1ca::t_6023c65527ef0d 69-100,102-116,118-146,148-154,386
+packages/github-action/src/index.ts
+  s_638a02645ec1ca::t_284f329f5cd07b 6-13,85,98,185,212-215,218-222,234-236,293-297,405-408
+  s_638a02645ec1ca::t_3e3d826ec365bf 289-292
+packages/hook/src/bin/aiq-hook.ts
+  s_638a02645ec1ca::t_6521d93e660809 54-58
+  s_638a02645ec1ca::t_13061ca4d668d2 4-5,13-15,25,44-53,59-103
+packages/github-action/action.yml
+  s_638a02645ec1ca::t_5b4108d08700ab 11,14,48-55
+packages/mcp/src/index.ts
+  s_638a02645ec1ca::t_3ea9d062b6276a 317-322,345-351,384,391-471,580-605
+  s_638a02645ec1ca::t_9b1a69046a7796 8,11-12,14,16,18-19,58,73-87,112-115,121,184-214,264-288,293-299,302-306
+packages/lsp/src/index.ts
+  s_638a02645ec1ca::t_8d78da9b8c6c6f 5-10,337-340,343-347
+  s_638a02645ec1ca::t_e89f6ad170f6e9 615-619
+packages/opencode-plugin/test/opencode-plugin.test.ts
+  s_638a02645ec1ca::t_bf9fe14a29e02d 91-176,178-182
+packages/config-schema/test/config-schema.test.ts
+  s_638a02645ec1ca::t_5166a1347647d1 10,12,20,39-80
+packages/hook/test/hook.test.ts
+  s_638a02645ec1ca::t_27997b2f29a4d9 9,206
+  s_638a02645ec1ca::t_62e2d27a991db6 99-180,182-205,207-237,239-253,255-285
+packages/github-action/test/action.test.ts
+  s_638a02645ec1ca::t_c83f6d3c1c6d3a 174
+  s_638a02645ec1ca::t_12e3f620f45661 8,122-173
+packages/opencode-plugin/src/index.ts
+  s_638a02645ec1ca::t_06cffa4abb9946 6,9-10,12,14,16-17,52-67,87,153-206,214-220,223-227,238-243
+  s_638a02645ec1ca::t_ba2482d6db8d06 266-267,294-349,388-413
+packages/cli/src/requests.ts
+  s_638a02645ec1ca::t_129ae9300ed4ee 11,217
+packages/cli/src/serve.ts
+  s_638a02645ec1ca::t_363c700c9d4499 4-9,34,52-56,147-148,150-154,156-157,198,200,209,232-253
+packages/config-schema/src/index.ts
+  s_638a02645ec1ca::t_2a7fb472c6bed3 37-49,140-156,463-499
+packages/cli/src/output.ts
+  s_638a02645ec1ca::t_1044dea31e6403 138,504,511,517-519
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "558547447d117250617ea66e87951ca7e15e8741",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
