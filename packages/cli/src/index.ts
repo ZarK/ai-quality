@@ -13,6 +13,7 @@ import {
   runFirstRunCommand,
   runPlanCommand,
   runSetupGuidanceCommand,
+  runStatusCommand,
 } from "./commands.js";
 import { runServeCommand } from "./serve.js";
 import { formatError } from "./shared.js";
@@ -52,6 +53,8 @@ export async function runCli(
       return runConfigCommand(parsed, io);
     case "doctor":
       return runDoctorCommand(parsed, io);
+    case "status":
+      return runStatusCommand(parsed, io);
     case "first-run":
       return runFirstRunCommand(parsed, io);
     case "ci":

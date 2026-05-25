@@ -32,6 +32,7 @@ const knownCommandNames = [
   "plan",
   "run",
   "serve",
+  "status",
   "watch",
 ] as const satisfies readonly PublicCommandName[];
 const knownCommandNameSet = new Set<string>(knownCommandNames);
@@ -288,6 +289,27 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
       throw new Error(
         "The doctor command accepts --format, --verbose, --up-to, --only, --stage, and --profile.",
       );
+    }
+  }
+
+  if (parsed.command === "status") {
+    if (
+      parsed.files.length > 0 ||
+      parsed.filesFrom !== undefined ||
+      parsed.setupSubcommand !== undefined ||
+      parsed.stdinFileList ||
+      parsed.stages.length > 0 ||
+      parsed.profile !== undefined ||
+      parsed.outDir !== undefined ||
+      parsed.benchmarkCorpusRoot !== undefined ||
+      parsed.benchmarkScenarioIds.length > 0 ||
+      parsed.benchmarkTags.length > 0 ||
+      parsed.benchmarkKinds.length > 0 ||
+      parsed.debounceMs !== defaultWatchDebounceMs ||
+      parsed.host !== defaultServeHost ||
+      parsed.port !== defaultServePort
+    ) {
+      throw new Error("The status command only accepts --format.");
     }
   }
 

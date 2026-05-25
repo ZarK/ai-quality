@@ -316,6 +316,7 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("aiq check <files...>");
     expect(stdout.value).toContain("aiq config [--print-config | --set-stage <0-9>]");
     expect(stdout.value).toContain("aiq doctor");
+    expect(stdout.value).toContain("aiq status [--format <json|text>]");
     expect(stdout.value).toContain("aiq install-tools");
     expect(stdout.value).toContain("aiq hook install");
     expect(stdout.value).toContain("aiq ci setup");
@@ -339,6 +340,7 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("--verbose, -v");
     expect(stdout.value).toContain("aiq config initializes .aiq/aiq.config.json");
     expect(stdout.value).toContain("aiq doctor validates config/progress state");
+    expect(stdout.value).toContain("aiq status shows the current stage");
     expect(stdout.value).toContain("aiq watch <files...>");
     expect(stdout.value).toContain("aiq serve [--host <host>] [--port <port>]");
   });
@@ -455,6 +457,35 @@ describe("CLI foundation", () => {
       order: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
       last_run: null,
     });
+
+    const statusStdout = new MemoryOutput();
+    const statusStderr = new MemoryOutput();
+    const statusExitCode = await runCli(["node", "aiq", "status", "--format", "json"], {
+      cwd: project.root,
+      stderr: statusStderr,
+      stdin: new MemoryInput(),
+      stdout: statusStdout,
+    });
+
+    expect(statusExitCode).toBe(0);
+    expect(statusStderr.value).toBe("");
+    const status = JSON.parse(statusStdout.value) as {
+      artifactPaths: { plan: string; report: string };
+      currentStage: { id: string; index: number; name: string };
+      defaultRun: { range: string; stages: Array<{ id: string }> };
+      lastRun: { status: string };
+      nextCommand: string;
+      selectedStages: string[];
+    };
+    expect(status.currentStage).toEqual({ id: "lint", index: 1, name: "lint" });
+    expect(status.defaultRun.range).toBe("0..1");
+    expect(status.defaultRun.stages.map((stage) => stage.id)).toEqual(["e2e", "lint"]);
+    expect(status.selectedStages).toEqual(["e2e", "lint"]);
+    expect(status.lastRun.status).toBe("passed");
+    expect(status.nextCommand).toBe("aiq config --set-stage 2");
+    expect(status.artifactPaths.report).toBe(
+      path.join(project.root, ".aiq", "out", "aiq.report.json"),
+    );
   });
 
   it("keeps explicit check without files as a usage error", async () => {
@@ -1467,6 +1498,12 @@ describe("CLI foundation", () => {
     const output = JSON.parse(stdout.value) as {
       request: { selection: { stages: string[] } };
       stages: Array<{ stageId: string }>;
+      workflow: {
+        currentStage: { id: string; index: number };
+        defaultRun: { range: string };
+        nextCommand: string;
+        selectedStages: string[];
+      };
     };
     expect(output.request.selection.stages).toEqual(["e2e", "lint", "format", "typecheck"]);
     expect(output.stages.map((stage) => stage.stageId)).toEqual([
@@ -1475,6 +1512,152 @@ describe("CLI foundation", () => {
       "format",
       "typecheck",
     ]);
+    expect(output.workflow).toMatchObject({
+      currentStage: { id: "typecheck", index: 3 },
+      defaultRun: {
+        range: "0..3",
+      },
+      nextCommand: "aiq run <paths...> --only 0 --verbose",
+      selectedStages: ["e2e", "lint", "format", "typecheck"],
+    });
+  });
+
+  it("reports status before any run without writing config state", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-status-no-run-");
+    await mkdir(path.join(project.root, ".aiq"), { recursive: true });
+    const progressPath = path.join(project.root, ".aiq", "progress.json");
+    const progressContents = `${JSON.stringify({
+      current_stage: 3,
+      disabled: [],
+      order: [0, 1, 2, 3],
+      last_run: "previous",
+    })}\n`;
+    await writeFile(progressPath, progressContents, "utf8");
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "status", "--format", "json"], {
+      cwd: project.root,
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+    const output = JSON.parse(stdout.value) as {
+      artifactPaths: { plan: string; report: string };
+      currentStage: { id: string; index: number };
+      defaultRun: { range: string; stages: Array<{ id: string }> };
+      lastRun: { failedStages: unknown[]; status: string };
+      nextCommand: string;
+      progressLastRun: string | null;
+      selectedStages: string[];
+    };
+    expect(output.currentStage).toMatchObject({ id: "typecheck", index: 3 });
+    expect(output.defaultRun.range).toBe("0..3");
+    expect(output.defaultRun.stages.map((stage) => stage.id)).toEqual([
+      "e2e",
+      "lint",
+      "format",
+      "typecheck",
+    ]);
+    expect(output.selectedStages).toEqual(["e2e", "lint", "format", "typecheck"]);
+    expect(output.lastRun).toMatchObject({ failedStages: [], status: "none" });
+    expect(output.progressLastRun).toBe("previous");
+    expect(output.nextCommand).toBe("aiq run <paths...>");
+    expect(output.artifactPaths.report).toBe(
+      path.join(project.root, ".aiq", "out", "aiq.report.json"),
+    );
+    expect(await readFile(progressPath, "utf8")).toBe(progressContents);
+    await expect(access(path.join(project.root, ".aiq", "aiq.config.json"))).rejects.toThrow();
+  });
+
+  it("prints focused failed-stage workflow guidance and records failed status", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-status-failed-run-");
+    await writeFile(project.filePath, "export const value: string = 1;\n", "utf8");
+    await mkdir(path.join(project.root, ".aiq"), { recursive: true });
+    await writeFile(path.join(project.root, ".aiq", "aiq.config.json"), '{"version":1}\n', "utf8");
+    await writeFile(
+      path.join(project.root, ".aiq", "progress.json"),
+      `${JSON.stringify({ current_stage: 3, disabled: [], order: [0, 1, 2, 3], last_run: null })}\n`,
+      "utf8",
+    );
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "run", "src/index.ts", "--only", "3"], {
+      cwd: project.root,
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(1);
+    expect(stderr.value).toBe("");
+    expect(stdout.value).toContain("AIQ workflow");
+    expect(stdout.value).toContain("Current stage: 3 typecheck");
+    expect(stdout.value).toContain("Default run: stages 0..3 (e2e, lint, format, typecheck)");
+    expect(stdout.value).toContain("Selected stages: typecheck");
+    expect(stdout.value).toContain("Debug 3 typecheck: aiq run <paths...> --only 3 --verbose");
+
+    const statusStdout = new MemoryOutput();
+    const statusStderr = new MemoryOutput();
+    const statusExitCode = await runCli(["node", "aiq", "status", "--format", "json"], {
+      cwd: project.root,
+      stderr: statusStderr,
+      stdin: new MemoryInput(),
+      stdout: statusStdout,
+    });
+
+    expect(statusExitCode).toBe(0);
+    expect(statusStderr.value).toBe("");
+    const status = JSON.parse(statusStdout.value) as {
+      lastRun: { failedStages: Array<{ id: string; index: number }>; status: string };
+      nextCommand: string;
+    };
+    expect(status.lastRun.status).toBe("failed");
+    expect(status.lastRun.failedStages).toEqual([{ id: "typecheck", index: 3, name: "typecheck" }]);
+    expect(status.nextCommand).toBe("aiq run <paths...> --only 3 --verbose");
+  });
+
+  it("prints successful current-stage workflow guidance and advancement", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-status-successful-run-");
+    await mkdir(path.join(project.root, ".aiq"), { recursive: true });
+    await writeFile(path.join(project.root, ".aiq", "aiq.config.json"), '{"version":1}\n', "utf8");
+    await writeFile(
+      path.join(project.root, ".aiq", "progress.json"),
+      `${JSON.stringify({ current_stage: 3, disabled: [], order: [0, 1, 2, 3], last_run: null })}\n`,
+      "utf8",
+    );
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "run", "src/index.ts", "--only", "3"], {
+      cwd: project.root,
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+    expect(stdout.value).toContain("Current stage satisfied: yes (3 typecheck)");
+    expect(stdout.value).toContain("Advance: aiq config --set-stage 4");
+
+    const statusStdout = new MemoryOutput();
+    const statusStderr = new MemoryOutput();
+    const statusExitCode = await runCli(["node", "aiq", "status"], {
+      cwd: project.root,
+      stderr: statusStderr,
+      stdin: new MemoryInput(),
+      stdout: statusStdout,
+    });
+
+    expect(statusExitCode).toBe(0);
+    expect(statusStderr.value).toBe("");
+    expect(statusStdout.value).toContain("Last run: passed");
+    expect(statusStdout.value).toContain("Next: aiq config --set-stage 4");
   });
 
   it("uses persisted current_stage as the default cumulative check target", async () => {
