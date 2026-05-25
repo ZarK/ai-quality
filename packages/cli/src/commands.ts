@@ -45,6 +45,7 @@ const doctorPrerequisites = [
   {
     binaries: ["node"],
     install: "Install Node.js 24 or newer from your normal Node version manager.",
+    minimumMajor: 24,
     required: true,
     name: "Node.js runtime",
   },
@@ -95,6 +96,7 @@ const doctorPrerequisites = [
 interface DoctorPrerequisite {
   binaries: readonly string[];
   install: string;
+  minimumMajor?: number;
   name: string;
   required: boolean;
 }
@@ -112,6 +114,7 @@ interface DoctorBundledTool {
 const doctorIgnoredDirectoryNames = new Set([
   ".aiq",
   ".git",
+  ".github",
   ".gradle",
   ".hg",
   ".idea",
@@ -126,9 +129,17 @@ const doctorIgnoredDirectoryNames = new Set([
   "build",
   "coverage",
   "dist",
+  "docs",
+  "documentation",
+  "examples",
+  "fixtures",
   "node_modules",
   "obj",
+  "samples",
   "target",
+  "test-projects",
+  "testdata",
+  "vendor",
   "venv",
 ]);
 
@@ -286,15 +297,19 @@ export async function runDoctorCommand(parsed: ParsedArgs, io: CliIo): Promise<n
         const installed = await resolveInstalledCommand(prerequisite.binaries, {
           includeVersion: parsed.verbose,
         });
+        const versionProblem =
+          installed === undefined ? undefined : validateDoctorPrerequisiteVersion(prerequisite);
         return {
           detail:
+            versionProblem ??
             installed ??
             (prerequisite.required
               ? `not detected; ${prerequisite.install}`
               : `not detected; ${prerequisite.install}`),
           install: prerequisite.install,
           name: prerequisite.name,
-          ok: installed !== undefined || !prerequisite.required,
+          ok:
+            installed !== undefined && versionProblem === undefined ? true : !prerequisite.required,
           required: prerequisite.required,
           source: "source" in prerequisite ? prerequisite.source : "external",
         };
@@ -866,6 +881,23 @@ function mergeDoctorPrerequisites(
 
 function usesAnyStage(selected: ReadonlySet<StageId>, stages: readonly StageId[]): boolean {
   return stages.some((stage) => selected.has(stage));
+}
+
+function validateDoctorPrerequisiteVersion(prerequisite: DoctorPrerequisite): string | undefined {
+  if (prerequisite.minimumMajor === undefined) {
+    return undefined;
+  }
+
+  if (!prerequisite.binaries.includes("node")) {
+    return undefined;
+  }
+
+  const major = Number.parseInt(process.versions.node.split(".")[0] ?? "", 10);
+  if (Number.isFinite(major) && major >= prerequisite.minimumMajor) {
+    return undefined;
+  }
+
+  return `detected Node.js ${process.version}; ${prerequisite.install}`;
 }
 
 async function resolveInstalledCommand(
