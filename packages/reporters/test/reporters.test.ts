@@ -100,12 +100,34 @@ describe("reporters", () => {
       stageId: "lint",
       status: "failed",
     });
+    const setupFailure = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [
+        {
+          file: workspaceRoot,
+          message: "Project config is missing required test runner settings.",
+          severity: "error",
+          source: "aiq",
+        },
+      ],
+      stageId: "unit",
+      status: "failed",
+    });
+    const multiWordTool = createRunResult({
+      cwd: workspaceRoot,
+      diagnostics: [],
+      notes: ["go test was not detected. Install Go to run unit tests."],
+      stageId: "unit",
+      status: "failed",
+    });
 
     expect(formatRunResultAsText(missingPython)).toContain("Missing tools:");
     expect(formatRunResultAsText(missingPython)).toContain("[stage 3 typecheck] Python/ty");
     expect(formatRunResultAsText(unsupportedJs)).toContain("Unsupported projects:");
     expect(formatRunResultAsText(qualityFailure)).toContain("Quality failures:");
     expect(formatRunResultAsText(qualityFailure)).toContain("Suggested next commands:");
+    expect(formatRunResultAsText(setupFailure)).toContain("Setup issues:");
+    expect(formatRunResultAsText(multiWordTool)).toContain("Go/go test");
   });
 });
 
@@ -210,7 +232,7 @@ function createRunResult(options: {
       mode: "check",
       outDir: path.join(options.cwd, ".aiq", "out"),
       selection: {
-        stages: ["lint"],
+        stages: [stageId],
         profile: "deep",
       },
       writeArtifacts: true,

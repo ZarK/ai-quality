@@ -246,20 +246,20 @@ function summarizeStageProblems(stage: StageResult): ProblemSummary[] {
     ];
   }
 
-  if (stage.diagnostics.length > 0) {
-    return [
-      {
-        category: "Quality failures",
-        item: `${formatStageLabel(stage.stageId)} ${stage.diagnostics.length} diagnostic${stage.diagnostics.length === 1 ? "" : "s"} from ${formatDiagnosticSources(stage.diagnostics)}. First: ${firstMessage}`,
-      },
-    ];
-  }
-
   if (isSetupIssueMessage(text)) {
     return [
       {
         category: "Setup issues",
         item: `${formatStageLabel(stage.stageId)} ${firstMessage} Fix: inspect config with aiq config --print-config or run aiq doctor.`,
+      },
+    ];
+  }
+
+  if (stage.diagnostics.length > 0) {
+    return [
+      {
+        category: "Quality failures",
+        item: `${formatStageLabel(stage.stageId)} ${stage.diagnostics.length} diagnostic${stage.diagnostics.length === 1 ? "" : "s"} from ${formatDiagnosticSources(stage.diagnostics)}. First: ${firstMessage}`,
       },
     ];
   }
@@ -293,7 +293,7 @@ function formatDiagnosticSources(diagnostics: readonly Diagnostic[]): string {
 }
 
 function readToolFromMessage(message: string): string | undefined {
-  const match = /^([A-Za-z0-9_.-]+) was not detected\./u.exec(message);
+  const match = /^([A-Za-z0-9_.-]+(?:\s+[A-Za-z0-9_.-]+)*) was not detected\./u.exec(message);
   return match?.[1];
 }
 
