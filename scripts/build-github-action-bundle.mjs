@@ -1,16 +1,21 @@
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { build } from "esbuild";
 
 const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
+const engineRequire = createRequire(
+  path.join(workspaceRoot, "packages", "engine", "package.json"),
+);
 const entryPoint = path.join(workspaceRoot, "packages", "github-action", "src", "main.ts");
 const outfile = path.join(workspaceRoot, "packages", "github-action", "dist", "main.mjs");
+const stylelintPackageJsonPath = engineRequire.resolve("stylelint/package.json");
+const stylelintRequire = createRequire(stylelintPackageJsonPath);
+const cssTreePackageJsonPath = stylelintRequire.resolve("css-tree/package.json");
 const cssTreePatchSource = path.join(
-  workspaceRoot,
-  "node_modules",
-  "css-tree",
+  path.dirname(cssTreePackageJsonPath),
   "data",
   "patch.json",
 );
@@ -21,13 +26,6 @@ const cssTreePatchTarget = path.join(
   "dist",
   "data",
   "patch.json",
-);
-const cssTreePackageJsonPath = path.join(workspaceRoot, "node_modules", "css-tree", "package.json");
-const stylelintPackageJsonPath = path.join(
-  workspaceRoot,
-  "node_modules",
-  "stylelint",
-  "package.json",
 );
 
 await mkdir(path.dirname(outfile), { recursive: true });

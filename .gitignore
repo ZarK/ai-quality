@@ -81,9 +81,8 @@ htmlcov/
 .aiq/out/
 .aiq/cache/
 
-# Lock files (keep package-lock.json but ignore others)
+# Lock files
 yarn.lock
-pnpm-lock.yaml
 bun.lockb
 
 # Temporary files
@@ -98,5 +97,9 @@ packages/github-action/dist/*
 
 # Generated fixture outputs
 test-projects/rust/target/
-.opencode/
+.opencode/*
+!.opencode/commands/
+!.opencode/commands/make-it-so.md
+!.opencode/plugins/
+!.opencode/plugins/ai-umpire-continuation.ts
 .umpire/
