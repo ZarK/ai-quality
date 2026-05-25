@@ -1,0 +1,19 @@
+packages/cli/src/watch.ts
+  s_638a02645ec1ca::t_7b72975fe78cf4 295,340,352,387,399,412,420-423,440,462
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "d03515b932ad91e20c02a42f5ac8b8c8161809dc",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
