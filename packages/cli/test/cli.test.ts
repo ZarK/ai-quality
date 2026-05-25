@@ -321,7 +321,7 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("Check is kept as a compatibility alias");
     expect(stdout.value).toContain("0=e2e 1=lint 2=format 3=typecheck");
     expect(stdout.value).toContain(
-      "By default aiq run uses .aiq/progress.json current_stage when present",
+      "By default aiq run and aiq plan use cumulative ladder stages 0 through .aiq/progress.json current_stage when present",
     );
     expect(stdout.value).toContain("--only <0-9>");
     expect(stdout.value).toContain("--diff-only");
@@ -700,6 +700,29 @@ describe("CLI foundation", () => {
     };
     expect(output.request.selection.stages).toEqual(["e2e"]);
     expect(output.stages).toMatchObject([{ stageId: "e2e", status: "not_implemented" }]);
+  });
+
+  it("runs cumulative stages for run --up-to stage shortcuts", async () => {
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(
+      ["node", "aiq", "run", fixtureFile, "--up-to", "3", "--dry-run", "--format", "json"],
+      {
+        cwd: process.cwd(),
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+
+    const output = JSON.parse(stdout.value) as {
+      plan: { stages: string[] };
+    };
+    expect(output.plan.stages).toEqual(["e2e", "lint", "format", "typecheck"]);
   });
 
   it("supports run --only stage shortcuts using the published stage ladder", async () => {
@@ -1256,7 +1279,7 @@ describe("CLI foundation", () => {
     }
   });
 
-  it("uses persisted current_stage for run when no stage flag is provided", async () => {
+  it("uses persisted current_stage as the default cumulative run target", async () => {
     const project = await createTypeScriptFixtureProject("aiq-cli-progress-run-");
     await mkdir(path.join(project.root, ".aiq"), { recursive: true });
     await writeFile(path.join(project.root, ".aiq", "aiq.config.json"), '{"version":1}\n', "utf8");
@@ -1275,17 +1298,22 @@ describe("CLI foundation", () => {
       stdout,
     });
 
-    expect(exitCode).toBe(0);
+    expect(exitCode).toBe(1);
     expect(stderr.value).toBe("");
     const output = JSON.parse(stdout.value) as {
       request: { selection: { stages: string[] } };
       stages: Array<{ stageId: string }>;
     };
-    expect(output.request.selection.stages).toEqual(["typecheck"]);
-    expect(output.stages.map((stage) => stage.stageId)).toEqual(["typecheck"]);
+    expect(output.request.selection.stages).toEqual(["e2e", "lint", "format", "typecheck"]);
+    expect(output.stages.map((stage) => stage.stageId)).toEqual([
+      "e2e",
+      "lint",
+      "format",
+      "typecheck",
+    ]);
   });
 
-  it("uses persisted current_stage for check compatibility alias", async () => {
+  it("uses persisted current_stage as the default cumulative check target", async () => {
     const project = await createTypeScriptFixtureProject("aiq-cli-progress-check-");
     await mkdir(path.join(project.root, ".aiq"), { recursive: true });
     await writeFile(
@@ -1303,12 +1331,12 @@ describe("CLI foundation", () => {
       stdout,
     });
 
-    expect(exitCode).toBe(0);
+    expect(exitCode).toBe(1);
     expect(stderr.value).toBe("");
     const output = JSON.parse(stdout.value) as {
       request: { selection: { stages: string[] } };
     };
-    expect(output.request.selection.stages).toEqual(["typecheck"]);
+    expect(output.request.selection.stages).toEqual(["e2e", "lint", "format", "typecheck"]);
   });
 
   it("lets explicit run stage flags override persisted current_stage", async () => {
@@ -1338,12 +1366,86 @@ describe("CLI foundation", () => {
     expect(output.request.selection.stages).toEqual(["lint"]);
   });
 
-  it("fails fast on malformed progress state", async () => {
+  it("lets explicit run profiles override persisted current_stage", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-progress-profile-");
+    await mkdir(path.join(project.root, ".aiq"), { recursive: true });
+    await writeFile(
+      path.join(project.root, ".aiq", "progress.json"),
+      `${JSON.stringify({ current_stage: 3, disabled: [], order: [0, 1, 2, 3], last_run: null })}\n`,
+      "utf8",
+    );
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "aiq",
+        "run",
+        "src/index.ts",
+        "--profile",
+        "standard",
+        "--dry-run",
+        "--format",
+        "json",
+      ],
+      {
+        cwd: project.root,
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+    const output = JSON.parse(stdout.value) as { plan: { stages: string[] } };
+    expect(output.plan.stages).toEqual(["lint", "typecheck", "unit"]);
+  });
+
+  it("lets explicit named run stages override persisted current_stage", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-progress-named-stage-");
+    await mkdir(path.join(project.root, ".aiq"), { recursive: true });
+    await writeFile(
+      path.join(project.root, ".aiq", "progress.json"),
+      `${JSON.stringify({ current_stage: 3, disabled: [], order: [0, 1, 2, 3], last_run: null })}\n`,
+      "utf8",
+    );
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "aiq",
+        "run",
+        "src/index.ts",
+        "--stage",
+        "security",
+        "--dry-run",
+        "--format",
+        "json",
+      ],
+      {
+        cwd: project.root,
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+    const output = JSON.parse(stdout.value) as { plan: { stages: string[] } };
+    expect(output.plan.stages).toEqual(["security"]);
+  });
+
+  it.each([12, -1])("fails fast on malformed progress stage %i", async (currentStage) => {
     const project = await createTypeScriptFixtureProject("aiq-cli-progress-invalid-");
     await mkdir(path.join(project.root, ".aiq"), { recursive: true });
     await writeFile(
       path.join(project.root, ".aiq", "progress.json"),
-      '{"current_stage":12,"disabled":[],"order":[0],"last_run":null}\n',
+      `${JSON.stringify({ current_stage: currentStage, disabled: [], order: [0], last_run: null })}\n`,
       "utf8",
     );
     const stdout = new MemoryOutput();
@@ -2252,6 +2354,43 @@ describe("CLI foundation", () => {
     const output = JSON.parse(stdout.value) as { stages: string[]; profile: string };
     expect(output.profile).toBe("standard");
     expect(output.stages).toEqual(["lint", "unit"]);
+  });
+
+  it("uses persisted current_stage as the default cumulative plan target", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-plan-progress-"));
+    tempDirs.push(tempDir);
+    await mkdir(path.join(tempDir, ".aiq"), { recursive: true });
+    await mkdir(path.join(tempDir, "src"), { recursive: true });
+    await writeFile(path.join(tempDir, "src/index.ts"), "export const value = 1;\n", "utf8");
+    await writeFile(path.join(tempDir, ".aiq", "aiq.config.json"), '{"version":1}\n', "utf8");
+    await writeFile(
+      path.join(tempDir, ".aiq", "progress.json"),
+      `${JSON.stringify({ current_stage: 6, disabled: [], order: [0, 1, 2, 3, 4, 5, 6], last_run: null })}\n`,
+      "utf8",
+    );
+
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+    const exitCode = await runCli(["node", "aiq", "plan", "src/index.ts", "--format", "json"], {
+      cwd: tempDir,
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+
+    const output = JSON.parse(stdout.value) as { stages: string[] };
+    expect(output.stages).toEqual([
+      "e2e",
+      "lint",
+      "format",
+      "typecheck",
+      "unit",
+      "sloc",
+      "complexity",
+    ]);
   });
 
   it("walks up to parent config and lets invocation stages override it", async () => {
