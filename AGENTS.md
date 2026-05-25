@@ -129,7 +129,7 @@ Do not close an issue until its checklist is complete or explicitly updated to r
 - **NEVER use Momus or Metis in this repository.**
 - Do not invoke `momus`, `metis`, plan-review flows, or pre-planning consultations that depend on them.
 - Use direct tools first; if extra support is needed, use `explore`, `librarian`, or `oracle` instead.
-- **NEVER use `git worktree` in this repository again.** Work in `/Users/tjalve/Github/ai-quality`, the primary checkout, and the current branch only.
+- **NEVER use `git worktree` in this repository again.** Work in the primary checkout and the current branch only.
 - Do not create linked worktrees, do not move `main` into another checkout, and do not solve branch-management problems with worktrees. If extra worktrees already exist, remove them before continuing.
 
 ## Branches And Commits
@@ -212,7 +212,7 @@ Merging requires passing CI, completion of the Copilot/cubic.dev review wait, an
 - [x] File tree, chat, editor, and terminal share the same neutral/accent, radius, font, and icon decisions.
 
 # Github Copilot Code Review Instructions
-- Every PR is linked to a gitub issue - make sure you read the issue and understand it before performing the review
+- Every PR is linked to a GitHub issue - make sure you read the issue and understand it before performing the review
 - We are doing a complete rewrite based on docs/aiq-rewrite.md and docs/rewrite-plan.md with docs/rewrite-issues.md as a reference. All other documentation should be ignored.
 
 <!-- BEGIN EXECUTOR MANAGED SECTION -->
