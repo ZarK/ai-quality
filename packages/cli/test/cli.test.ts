@@ -577,19 +577,24 @@ describe("CLI foundation", () => {
   });
 
   it("rejects text output for the schema command", async () => {
-    const stdout = new MemoryOutput();
-    const stderr = new MemoryOutput();
+    for (const args of [
+      ["node", "aiq", "schema", "--format", "text"],
+      ["node", "aiq", "schema", "--format", "text", "--format", "json"],
+    ]) {
+      const stdout = new MemoryOutput();
+      const stderr = new MemoryOutput();
 
-    const exitCode = await runCli(["node", "aiq", "schema", "--format", "text"], {
-      cwd: process.cwd(),
-      stderr,
-      stdin: new MemoryInput(),
-      stdout,
-    });
+      const exitCode = await runCli(args, {
+        cwd: process.cwd(),
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      });
 
-    expect(exitCode).toBe(2);
-    expect(stdout.value).toBe("");
-    expect(stderr.value).toContain("The schema command only supports --format json.");
+      expect(exitCode).toBe(2);
+      expect(stdout.value).toBe("");
+      expect(stderr.value).toContain("The schema command only supports --format json.");
+    }
   });
 
   it("shows help for operational guidance commands without requiring subcommands", async () => {

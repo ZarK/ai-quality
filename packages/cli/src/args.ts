@@ -315,7 +315,7 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
   }
 
   if (parsed.command === "schema") {
-    if (parsed.format !== "json" && args.includes("--format")) {
+    if ((parsed.format !== "json" && args.includes("--format")) || hasNonJsonSchemaFormat(args)) {
       throw new Error("The schema command only supports --format json.");
     }
 
@@ -391,6 +391,10 @@ function validateSetupGuidanceCommand(parsed: ParsedArgs): void {
   if (parsed.setupSubcommand !== expectedSubcommand) {
     throw new Error(`Use aiq ${parsed.command} ${expectedSubcommand}.`);
   }
+}
+
+function hasNonJsonSchemaFormat(args: string[]): boolean {
+  return args.some((argument, index) => argument === "--format" && args[index + 1] !== "json");
 }
 
 function parseCommand(command?: string): CommandName {
