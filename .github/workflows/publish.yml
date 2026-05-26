@@ -107,6 +107,8 @@ jobs:
 
       - name: Stage npm packages
         run: |
+          unset NODE_AUTH_TOKEN
+          npm config delete //registry.npmjs.org/:_authToken || true
           npm stage publish . --workspace @tjalve/aiq-model --access public --provenance --ignore-scripts
           npm stage publish . --workspace @tjalve/aiq-config-schema --access public --provenance --ignore-scripts
           npm stage publish . --workspace @tjalve/aiq-reporters --access public --provenance --ignore-scripts
