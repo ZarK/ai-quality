@@ -22,15 +22,15 @@ Use `pnpm run build` before packaging so the published CLI package contains fres
 |---|---|
 | `@tjalve/aiq` | Published CLI and API package |
 | `aiq-internal-engine` | Stage planning and runner execution |
-| `aiq-internal-config` | Config, progress, and surface resolution |
+| `aiq-internal-config-schema` | Config, progress, and surface resolution |
 | `aiq-internal-model` | Shared contracts and IDs |
 | `aiq-internal-reporters` | Text and JSON output formatting |
 | `aiq-internal-benchmark` | Benchmark scenarios |
 | `aiq-internal-hook` | Hook adapter |
-| `aiq-internal-action` | GitHub Action adapter |
+| `aiq-internal-github-action` | GitHub Action adapter |
 | `aiq-internal-lsp` | LSP adapter |
 | `aiq-internal-mcp` | MCP adapter |
-| `aiq-internal-opencode` | OpenCode adapter |
+| `aiq-internal-opencode-plugin` | OpenCode adapter |
 
 ## Package Checks
 

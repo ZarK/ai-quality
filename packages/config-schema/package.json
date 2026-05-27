@@ -1,5 +1,5 @@
 {
-  "name": "aiq-internal-config",
+  "name": "aiq-internal-config-schema",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,5 +1,5 @@
 {
-  "name": "aiq-internal-opencode",
+  "name": "aiq-internal-opencode-plugin",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
