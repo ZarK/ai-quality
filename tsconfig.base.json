@@ -22,16 +22,11 @@
       "@tjalve/aiq/api": ["packages/cli/src/api.ts"],
       "@tjalve/aiq/schema": ["packages/cli/src/schema.ts"],
       "@tjalve/aiq": ["packages/cli/src/index.ts"],
-      "@tjalve/aiq-benchmark": ["packages/benchmark/src/index.ts"],
-      "@tjalve/aiq-config-schema": ["packages/config-schema/src/index.ts"],
-      "@tjalve/aiq-model": ["packages/model/src/index.ts"],
-      "@tjalve/aiq-engine": ["packages/engine/src/index.ts"],
-      "@tjalve/aiq-reporters": ["packages/reporters/src/index.ts"],
-      "@tjalve/aiq-lsp": ["packages/lsp/src/index.ts"],
-      "@tjalve/aiq-hook": ["packages/hook/src/index.ts"],
-      "@tjalve/aiq-action": ["packages/github-action/src/index.ts"],
-      "@tjalve/aiq-opencode": ["packages/opencode-plugin/src/index.ts"],
-      "@tjalve/aiq-mcp": ["packages/mcp/src/index.ts"]
+      "@tjalve/aiq/benchmark": ["packages/benchmark/src/index.ts"],
+      "@tjalve/aiq/config": ["packages/config-schema/src/index.ts"],
+      "@tjalve/aiq/model": ["packages/model/src/index.ts"],
+      "@tjalve/aiq/engine": ["packages/engine/src/index.ts"],
+      "@tjalve/aiq/reporters": ["packages/reporters/src/index.ts"]
     }
   }
 }

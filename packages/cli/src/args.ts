@@ -1,13 +1,13 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import type { BenchmarkScenarioKind } from "@tjalve/aiq-benchmark";
+import type { BenchmarkScenarioKind } from "@tjalve/aiq/benchmark";
 import {
   type AiqProfileName,
   type AiqProgressStageIndex,
   aiqProfileNames,
-} from "@tjalve/aiq-config-schema";
-import { type StageId, stageIds } from "@tjalve/aiq-model";
+} from "@tjalve/aiq/config";
+import { type StageId, stageIds } from "@tjalve/aiq/model";
 
 import {
   type CommandName,

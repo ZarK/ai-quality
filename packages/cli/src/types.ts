@@ -1,10 +1,10 @@
-import type { BenchmarkScenarioKind } from "@tjalve/aiq-benchmark";
+import type { BenchmarkScenarioKind } from "@tjalve/aiq/benchmark";
 import {
   type AiqProfileName,
   type AiqProgressStageIndex,
   aiqStageLadderIds,
-} from "@tjalve/aiq-config-schema";
-import type { StageId, ToolRunResult } from "@tjalve/aiq-model";
+} from "@tjalve/aiq/config";
+import type { StageId, ToolRunResult } from "@tjalve/aiq/model";
 
 export type CommandName =
   | "bench"

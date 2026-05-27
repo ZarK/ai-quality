@@ -9,9 +9,9 @@ import {
   loadAiqProgress,
   resolveAiqConfig,
   resolveAiqProgressStageIds,
-} from "@tjalve/aiq-config-schema";
-import { resolveRunRequest } from "@tjalve/aiq-engine";
-import type { FileManifestInput, RunContext, RunRequest, StageId } from "@tjalve/aiq-model";
+} from "@tjalve/aiq/config";
+import { resolveRunRequest } from "@tjalve/aiq/engine";
+import type { FileManifestInput, RunContext, RunRequest, StageId } from "@tjalve/aiq/model";
 
 import { isErrorCode, readStdin, splitLines } from "./shared.js";
 import type { CliIo, ParsedArgs } from "./types.js";

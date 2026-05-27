@@ -1,6 +1,6 @@
-import type { FileManifest, ResolvedRunRequest, StageId } from "@tjalve/aiq-model";
+import type { FileManifest, ResolvedRunRequest, StageId } from "@tjalve/aiq/model";
 
-export * from "@tjalve/aiq-model";
+export * from "@tjalve/aiq/model";
 
 export const engineVersion = "0.0.0";
 

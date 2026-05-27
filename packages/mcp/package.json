@@ -1,5 +1,5 @@
 {
-  "name": "@tjalve/aiq-mcp",
+  "name": "aiq-internal-mcp",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,13 +22,10 @@
     "@tjalve/aiq": "0.2.0",
     "zod": "4.3.6"
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/mcp"
-  }
+  },
+  "private": true
 }

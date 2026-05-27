@@ -1,5 +1,5 @@
 {
-  "name": "@tjalve/aiq-engine",
+  "name": "aiq-internal-engine",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@biomejs/biome": "1.9.4",
-    "@tjalve/aiq-model": "0.2.0",
     "htmlhint": "1.9.2",
     "node-sql-parser": "5.4.0",
     "prettier": "3.8.1",
@@ -28,13 +27,10 @@
     "typescript": "5.9.3",
     "yaml": "2.8.3"
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/engine"
-  }
+  },
+  "private": true
 }

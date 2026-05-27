@@ -5,9 +5,9 @@ import {
   type LoadedAiqProgress,
   loadAiqProgress,
   resolveAiqProgressStageIds,
-} from "@tjalve/aiq-config-schema";
-import { buildRunPlan, resolveRunRequest, runResolvedRequest } from "@tjalve/aiq-engine";
-import type { ResolvedRunRequest, RunPlan, RunRequest } from "@tjalve/aiq-model";
+} from "@tjalve/aiq/config";
+import { buildRunPlan, resolveRunRequest, runResolvedRequest } from "@tjalve/aiq/engine";
+import type { ResolvedRunRequest, RunPlan, RunRequest } from "@tjalve/aiq/model";
 
 import { writeWatchOutput } from "./output.js";
 import { createManifestInput, resolveCliConfig } from "./requests.js";

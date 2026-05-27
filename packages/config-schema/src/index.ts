@@ -9,7 +9,7 @@ import {
   languageIds,
   stageIds,
   surfaceIds,
-} from "@tjalve/aiq-model";
+} from "@tjalve/aiq/model";
 
 export const aiqConfigFileNames = [".aiq/aiq.config.json", "aiq.config.json"] as const;
 export const aiqProgressFileName = ".aiq/progress.json" as const;

@@ -4,21 +4,21 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { runBenchmarkSuite } from "@tjalve/aiq-benchmark";
+import { runBenchmarkSuite } from "@tjalve/aiq/benchmark";
 import {
   initializeAiqProjectConfig,
   loadAiqProgress,
   resolveAiqConfig,
   setAiqProgressStage,
-} from "@tjalve/aiq-config-schema";
+} from "@tjalve/aiq/config";
 import {
   createRunPlan,
   resolvePlanArtifactPath,
   resolveReportArtifactPath,
   runEngine,
   writePlanArtifact,
-} from "@tjalve/aiq-engine";
-import type { LanguageId, RunRequest, RunResult, StageId } from "@tjalve/aiq-model";
+} from "@tjalve/aiq/engine";
+import type { LanguageId, RunRequest, RunResult, StageId } from "@tjalve/aiq/model";
 
 import { createAiqQualityEvidence, formatAiqQualityEvidenceJson } from "./evidence.js";
 import {

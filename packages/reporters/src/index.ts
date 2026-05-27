@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { Diagnostic, RunPlan, RunResult, StageId, StageResult } from "@tjalve/aiq-model";
+import type { Diagnostic, RunPlan, RunResult, StageId, StageResult } from "@tjalve/aiq/model";
 
 export interface GitHubAnnotation {
   endColumn?: number;

@@ -2,8 +2,8 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node
 import os from "node:os";
 import path from "node:path";
 
-import { engineVersion, runEngine } from "@tjalve/aiq-engine";
-import type { LanguageId, RunStatus, StageId } from "@tjalve/aiq-model";
+import { engineVersion, runEngine } from "@tjalve/aiq/engine";
+import type { LanguageId, RunStatus, StageId } from "@tjalve/aiq/model";
 
 export const benchmarkArtifactVersion = 2 as const;
 
