@@ -7,15 +7,15 @@ import {
   aiqProfileNames,
   loadAiqProgress,
   resolveAiqProgressStageIds,
-} from "@tjalve/aiq-config-schema";
-import { resolveRunRequest, runEngine } from "@tjalve/aiq-engine";
+} from "@tjalve/aiq/config";
+import { resolveRunRequest, runEngine } from "@tjalve/aiq/engine";
 import {
   type ManifestSource,
   type RunRequest,
   type StageId,
   manifestSources,
   stageIds,
-} from "@tjalve/aiq-model";
+} from "@tjalve/aiq/model";
 
 import { writeServeListeningOutput } from "./output.js";
 import { resolveCliConfig } from "./requests.js";

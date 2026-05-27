@@ -21,7 +21,7 @@
     "packages/mcp"
   ],
   "scripts": {
-    "build": "tsc -b && node scripts/build-github-action-bundle.mjs",
+    "build": "tsc -b && node scripts/build-aiq-package.mjs && node scripts/build-github-action-bundle.mjs",
     "build:github-action-bundle": "node scripts/build-github-action-bundle.mjs",
     "bench": "node packages/cli/dist/bin/aiq.js bench --format text",
     "bench:ci": "node packages/cli/dist/bin/aiq.js bench --tag ci --format json",

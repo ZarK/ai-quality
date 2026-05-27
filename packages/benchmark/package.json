@@ -1,5 +1,5 @@
 {
-  "name": "@tjalve/aiq-benchmark",
+  "name": "aiq-internal-benchmark",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,17 +14,10 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {
-    "@tjalve/aiq-model": "0.2.0",
-    "@tjalve/aiq-engine": "0.2.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/benchmark"
-  }
+  },
+  "private": true
 }

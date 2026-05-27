@@ -1,5 +1,5 @@
 {
-  "name": "@tjalve/aiq-model",
+  "name": "aiq-internal-model",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,13 +14,10 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ZarK/ai-quality.git",
     "directory": "packages/model"
-  }
+  },
+  "private": true
 }

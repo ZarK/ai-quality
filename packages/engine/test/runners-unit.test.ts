@@ -1,4 +1,4 @@
-import type { RunStageConfigurations, StageId } from "@tjalve/aiq-model";
+import type { RunStageConfigurations, StageId } from "@tjalve/aiq/model";
 import { describe, expect, it } from "vitest";
 import {
   type RunnerStageDefinition,

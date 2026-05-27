@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 
-import { resolveReportArtifactPath } from "@tjalve/aiq-engine";
-import type { RunResult, StageStatus } from "@tjalve/aiq-model";
+import { resolveReportArtifactPath } from "@tjalve/aiq/engine";
+import type { RunResult, StageStatus } from "@tjalve/aiq/model";
 
 import { isErrorCode } from "./shared.js";
 

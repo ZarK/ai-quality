@@ -14,23 +14,23 @@ pnpm run test:publish-readiness
 pnpm run test:smoke
 ```
 
-Use `pnpm run build` before packaging so workspace packages have fresh `dist` output. Use `pnpm test` for the full Vitest suite, `pnpm run bench:ci` for the CI benchmark subset, and `pnpm run test:publish-readiness` for the packed npm UX gate.
+Use `pnpm run build` before packaging so the published CLI package contains fresh internal module output. Use `pnpm test` for the full Vitest suite, `pnpm run bench:ci` for the CI benchmark subset, and `pnpm run test:publish-readiness` for the packed npm UX gate.
 
 ## Workspace Packages
 
-| Package | Purpose |
+| Workspace | Purpose |
 |---|---|
-| `@tjalve/aiq` | Published CLI package |
-| `@tjalve/aiq-engine` | Stage planning and runner execution |
-| `@tjalve/aiq-config-schema` | Config, progress, and surface resolution |
-| `@tjalve/aiq-model` | Shared contracts and IDs |
-| `@tjalve/aiq-reporters` | Text and JSON output formatting |
-| `@tjalve/aiq-benchmark` | Benchmark scenarios |
-| `@tjalve/aiq-hook` | Hook adapter |
-| `@tjalve/aiq-action` | GitHub Action adapter |
-| `@tjalve/aiq-lsp` | LSP adapter |
-| `@tjalve/aiq-mcp` | MCP adapter |
-| `@tjalve/aiq-opencode` | OpenCode adapter |
+| `@tjalve/aiq` | Published CLI and API package |
+| `aiq-internal-engine` | Stage planning and runner execution |
+| `aiq-internal-config` | Config, progress, and surface resolution |
+| `aiq-internal-model` | Shared contracts and IDs |
+| `aiq-internal-reporters` | Text and JSON output formatting |
+| `aiq-internal-benchmark` | Benchmark scenarios |
+| `aiq-internal-hook` | Hook adapter |
+| `aiq-internal-action` | GitHub Action adapter |
+| `aiq-internal-lsp` | LSP adapter |
+| `aiq-internal-mcp` | MCP adapter |
+| `aiq-internal-opencode` | OpenCode adapter |
 
 ## Package Checks
 
@@ -39,7 +39,7 @@ npm pack --workspace @tjalve/aiq --dry-run
 node scripts/run-smoke-tests.mjs
 ```
 
-`packages/cli/README.md` is the published npm README for `@tjalve/aiq`. Keep user-facing CLI onboarding there and keep this root README focused on contributor workflow. `pnpm run test:publish-readiness` packs and installs the workspace packages before checking the npm-facing CLI contract.
+`packages/cli/README.md` is the published npm README for `@tjalve/aiq`. Keep user-facing CLI onboarding there and keep this root README focused on contributor workflow. `pnpm run test:publish-readiness` packs and installs `@tjalve/aiq` before checking the npm-facing CLI and public API contract.
 
 ## Publishing
 

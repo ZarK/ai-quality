@@ -109,14 +109,4 @@ jobs:
         run: |
           unset NODE_AUTH_TOKEN
           npm config delete //registry.npmjs.org/:_authToken || true
-          npm stage publish . --workspace @tjalve/aiq-model --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-config-schema --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-reporters --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-engine --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-benchmark --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-hook --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-lsp --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-mcp --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-opencode --access public --provenance --ignore-scripts
-          npm stage publish . --workspace @tjalve/aiq-action --access public --provenance --ignore-scripts
           npm stage publish . --workspace @tjalve/aiq --access public --provenance --ignore-scripts

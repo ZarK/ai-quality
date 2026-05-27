@@ -1,4 +1,4 @@
-import { AiqEngineCancelledError } from "@tjalve/aiq-engine";
+import { AiqEngineCancelledError } from "@tjalve/aiq/engine";
 
 import type { CliInput } from "./types.js";
 

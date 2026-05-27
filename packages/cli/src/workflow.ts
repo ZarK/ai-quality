@@ -4,8 +4,8 @@ import {
   resolveAiqProgressStageIds,
   resolveAiqProgressStageIndex,
   toAiqWorkflowStage,
-} from "@tjalve/aiq-config-schema";
-import type { RunRequest, RunResult, StageId } from "@tjalve/aiq-model";
+} from "@tjalve/aiq/config";
+import type { RunRequest, RunResult, StageId } from "@tjalve/aiq/model";
 
 import type { RunWorkflowOutput } from "./output.js";
 import { cliStageShortcutIds } from "./types.js";

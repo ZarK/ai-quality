@@ -22,14 +22,7 @@ const fixtureJavaScriptFile = path.resolve("test-projects/javascript/index.js");
 const fixtureDotNetRoot = path.resolve("test-projects/dotnet");
 const fixturePythonFile = path.resolve("test-projects/python/main.py");
 const fixtureTsconfig = path.resolve("test-projects/typescript/tsconfig.json");
-const packageSmokeWorkspaces = [
-  "packages/benchmark",
-  "packages/model",
-  "packages/config-schema",
-  "packages/engine",
-  "packages/reporters",
-  "packages/cli",
-] as const;
+const packageSmokeWorkspaces = ["packages/cli"] as const;
 const approvedPackageSmokeDependencies = [
   {
     name: "@tjalve/qube-cli",
@@ -37,9 +30,9 @@ const approvedPackageSmokeDependencies = [
     version: "0.1.1",
   },
 ] as const;
-const publishedPackageWorkspaces = [
+const publishedPackageWorkspaces = ["packages/cli"] as const;
+const internalPackageWorkspaces = [
   "packages/benchmark",
-  "packages/cli",
   "packages/config-schema",
   "packages/engine",
   "packages/github-action",
@@ -373,17 +366,6 @@ afterEach(async () => {
 
 describe("CLI foundation", () => {
   it("keeps published package metadata aligned with the clean repository", async () => {
-    const publishedPackageNames = new Set(
-      await Promise.all(
-        publishedPackageWorkspaces.map(async (publishedWorkspace) => {
-          const publishedPackageJson = JSON.parse(
-            await readFile(path.join(repoRoot, publishedWorkspace, "package.json"), "utf8"),
-          ) as { name: string };
-          return publishedPackageJson.name;
-        }),
-      ),
-    );
-
     for (const workspace of publishedPackageWorkspaces) {
       const packageJson = JSON.parse(
         await readFile(path.join(repoRoot, workspace, "package.json"), "utf8"),
@@ -397,6 +379,7 @@ describe("CLI foundation", () => {
         version: string;
       };
 
+      expect(packageJson.name).toBe("@tjalve/aiq");
       expect(packageJson.publishConfig).toEqual({ access: "public", provenance: true });
       expect(packageJson.repository).toEqual({
         directory: workspace,
@@ -411,12 +394,31 @@ describe("CLI foundation", () => {
       for (const [dependencyName, dependencyVersion] of Object.entries(
         packageJson.dependencies ?? {},
       )) {
-        if (!dependencyName.startsWith("@tjalve/aiq")) {
-          continue;
+        expect(dependencyName.startsWith("@tjalve/aiq-")).toBe(false);
+        if (dependencyName === "@tjalve/aiq") {
+          expect(dependencyVersion).toBe(packageJson.version);
         }
+      }
+    }
+  });
 
-        expect(publishedPackageNames.has(dependencyName)).toBe(true);
-        expect(dependencyVersion).toBe(packageJson.version);
+  it("keeps former split packages private to the workspace", async () => {
+    for (const workspace of internalPackageWorkspaces) {
+      const packageJson = JSON.parse(
+        await readFile(path.join(repoRoot, workspace, "package.json"), "utf8"),
+      ) as {
+        dependencies?: Record<string, string>;
+        name: string;
+        private?: boolean;
+        publishConfig?: unknown;
+      };
+
+      expect(packageJson.private).toBe(true);
+      expect(packageJson.publishConfig).toBeUndefined();
+      expect(packageJson.name.startsWith("@tjalve/aiq-")).toBe(false);
+
+      for (const dependencyName of Object.keys(packageJson.dependencies ?? {})) {
+        expect(dependencyName.startsWith("@tjalve/aiq-")).toBe(false);
       }
     }
   });
@@ -444,7 +446,16 @@ describe("CLI foundation", () => {
       aiq: "dist/bin/aiq.js",
       quality: "dist/bin/aiq.js",
     });
-    expect(Object.keys(packageJson.exports ?? {}).sort()).toEqual([".", "./api", "./schema"]);
+    expect(Object.keys(packageJson.exports ?? {}).sort()).toEqual([
+      ".",
+      "./api",
+      "./benchmark",
+      "./config",
+      "./engine",
+      "./model",
+      "./reporters",
+      "./schema",
+    ]);
   });
 
   it("shows help and exits with 0", async () => {
@@ -4349,7 +4360,16 @@ describePackageSmoke("CLI package smoke", () => {
       const packedFixture = await createPackedPackageFixture();
       const cliPackage = packedFixture.packages.find((entry) => entry.workspace === "packages/cli");
       expect(cliPackage?.files.map((entry) => entry.path).sort()).toEqual(
-        expect.arrayContaining(["README.md", "dist/api.js", "dist/bin/aiq.js"]),
+        expect.arrayContaining([
+          "README.md",
+          "dist/api.js",
+          "dist/benchmark/index.js",
+          "dist/bin/aiq.js",
+          "dist/config/index.js",
+          "dist/engine/index.js",
+          "dist/model/index.js",
+          "dist/reporters/index.js",
+        ]),
       );
 
       const installedPackageReadme = await readFile(
@@ -4599,6 +4619,38 @@ describePackageSmoke("CLI package smoke", () => {
         commands: 7,
         json: "function",
         render: "function",
+      });
+
+      const packedSubpathImport = await runCommand(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          [
+            "const benchmark = await import('@tjalve/aiq/benchmark');",
+            "const config = await import('@tjalve/aiq/config');",
+            "const engine = await import('@tjalve/aiq/engine');",
+            "const model = await import('@tjalve/aiq/model');",
+            "const reporters = await import('@tjalve/aiq/reporters');",
+            "console.log(JSON.stringify({",
+            "runBenchmarkSuite: typeof benchmark.runBenchmarkSuite,",
+            "resolveAiqConfig: typeof config.resolveAiqConfig,",
+            "runEngine: typeof engine.runEngine,",
+            "stageIds: Array.isArray(model.stageIds),",
+            "formatRunResultAsText: typeof reporters.formatRunResultAsText",
+            "}));",
+          ].join(" "),
+        ],
+        { cwd: packedFixture.root },
+      );
+      expect(packedSubpathImport.exitCode).toBe(0);
+      expect(packedSubpathImport.stderr).toBe("");
+      expect(JSON.parse(packedSubpathImport.stdout) as Record<string, unknown>).toEqual({
+        formatRunResultAsText: "function",
+        resolveAiqConfig: "function",
+        runBenchmarkSuite: "function",
+        runEngine: "function",
+        stageIds: true,
       });
     });
   }, 120_000);

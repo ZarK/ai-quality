@@ -1,11 +1,11 @@
-import { formatBenchmarkReportAsJson, formatBenchmarkReportAsText } from "@tjalve/aiq-benchmark";
-import type { RunPlan, RunResult, StageId, ToolRunResult } from "@tjalve/aiq-model";
+import { formatBenchmarkReportAsJson, formatBenchmarkReportAsText } from "@tjalve/aiq/benchmark";
+import type { RunPlan, RunResult, StageId, ToolRunResult } from "@tjalve/aiq/model";
 import {
   formatPlanAsJson,
   formatPlanAsText,
   formatRunResultAsJson,
   formatRunResultAsText,
-} from "@tjalve/aiq-reporters";
+} from "@tjalve/aiq/reporters";
 
 import { type CliIo, type OutputFormat, cliStageShortcutIds } from "./types.js";
 import type { SetupGuidanceCommand, VerboseToolRunDetail } from "./types.js";
