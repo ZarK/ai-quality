@@ -1,0 +1,49 @@
+packages/mcp/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,29-30
+package.json
+  s_638a02645ec1ca::t_5f54fcc863512f 24
+packages/benchmark/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,21-22
+packages/cli/test/cli.test.ts
+  s_638a02645ec1ca::t_31b817faab71ae 25,33-34,382,397-399,401-414,416-421,449-458,4363-4372,4623-4653
+packages/github-action/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,26-27
+packages/engine/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,34-35
+packages/lsp/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,24-25
+packages/reporters/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,21-22
+scripts/build-aiq-package.mjs
+  s_638a02645ec1ca::t_43a2b5fe096e5f 1-21
+packages/hook/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,27-28
+packages/model/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,21-22
+README.md
+  s_638a02645ec1ca::t_de896ac7cd5887 17,21,23-33,42
+packages/config-schema/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,21-22
+vitest.config.ts
+  s_638a02645ec1ca::t_e1781a1359fefc 11-44
+tsconfig.base.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 25-29
+packages/opencode-plugin/package.json
+  s_638a02645ec1ca::t_be9c78bf3175e8 2,25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1799fe72fe70b7fda4ef07e5eb9e480dee0af016",
+  "prompts": {},
+  "sessions": {
+    "s_638a02645ec1ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5ed6-c933-7582-bf95-25bb71aecf35",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Tjalve Aarflot <tjalve.github@proton.me>"
+    }
+  }
+}
