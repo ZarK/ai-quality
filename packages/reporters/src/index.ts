@@ -133,7 +133,13 @@ export function formatRunResultAsText(result: RunResult): string {
       lines.push(...group.items.map((item) => `  - ${item}`));
     }
     lines.push("Suggested next commands:");
-    lines.push("  - aiq setup");
+    if (
+      problemGroups.some(
+        (group) => group.heading === "Missing tools" || group.heading === "Setup issues",
+      )
+    ) {
+      lines.push("  - aiq setup");
+    }
     lines.push("  - aiq doctor");
     lines.push("  - aiq run <paths...> --only <stage-number> --verbose");
     lines.push("  - aiq config --set-stage <0-9>");

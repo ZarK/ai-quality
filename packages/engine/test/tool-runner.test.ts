@@ -54,6 +54,9 @@ describe("ToolRunner binary lookup", () => {
     expect(runner.readProcessFailureMessage("lizard", "", "", undefined)).toBe(
       "lizard was not detected. Run aiq setup for required setup steps.",
     );
+    expect(runner.readProcessFailureMessage("lizard", "spawn EINVAL", "", undefined)).toBe(
+      "lizard was not detected. Run aiq setup for required setup steps.",
+    );
     expect(runner.isMissingCommandOutcome("", "", undefined)).toBe(true);
   });
 

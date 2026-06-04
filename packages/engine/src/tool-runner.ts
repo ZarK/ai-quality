@@ -328,16 +328,16 @@ export class ToolRunner {
     stdout: string,
     exitCode: number | undefined,
   ): string {
+    if (exitCode === undefined) {
+      return `${toolName} was not detected. Run aiq setup for required setup steps.`;
+    }
+
     const combined = this.joinOutputs(stderr, stdout).trim();
     if (combined.length > 0) {
       return combined;
     }
 
-    if (exitCode === undefined) {
-      return `${toolName} was not detected. Run aiq setup for required setup steps.`;
-    }
-
-    return `${toolName} exited with code ${exitCode ?? "unknown"}.`;
+    return `${toolName} exited with code ${exitCode}.`;
   }
 
   joinOutputs(...values: string[]): string {
