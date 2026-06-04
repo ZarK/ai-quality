@@ -58,6 +58,7 @@ describe("ToolRunner binary lookup", () => {
       "lizard was not detected. Run aiq setup for required setup steps.",
     );
     expect(runner.isMissingCommandOutcome("", "", undefined)).toBe(true);
+    expect(runner.isMissingCommandOutcome("spawn EINVAL", "", undefined)).toBe(true);
   });
 
   it.skipIf(process.platform !== "win32")(

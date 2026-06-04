@@ -345,14 +345,17 @@ export class ToolRunner {
   }
 
   isMissingCommandOutcome(stderr: string, stdout: string, exitCode: number | undefined): boolean {
+    if (exitCode === undefined) {
+      return true;
+    }
+
     const combined = this.joinOutputs(stderr, stdout).toLowerCase();
     return (
-      (exitCode === undefined || exitCode !== 0) &&
+      exitCode !== 0 &&
       (combined.includes("command not found") ||
         combined.includes("no such file or directory") ||
         combined.includes("not recognized as the name of a cmdlet") ||
-        combined.includes("cannot find the file specified") ||
-        (exitCode === undefined && combined.trim().length === 0))
+        combined.includes("cannot find the file specified"))
     );
   }
 
