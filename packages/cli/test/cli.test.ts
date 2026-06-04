@@ -820,6 +820,8 @@ describe("CLI foundation", () => {
       mkdir(path.join(project.root, "docs"), { recursive: true }),
       mkdir(path.join(project.root, "examples", "jvm"), { recursive: true }),
       mkdir(path.join(project.root, "fixtures", "rust"), { recursive: true }),
+      mkdir(path.join(project.root, "reference", "python"), { recursive: true }),
+      mkdir(path.join(project.root, "references", "go"), { recursive: true }),
       mkdir(path.join(project.root, "samples", "dotnet"), { recursive: true }),
       mkdir(path.join(project.root, "test-projects", "go"), { recursive: true }),
     ]);
@@ -827,6 +829,16 @@ describe("CLI foundation", () => {
       writeFile(path.join(project.root, "docs", "example.py"), "print('reference only')\n", "utf8"),
       writeFile(path.join(project.root, "examples", "jvm", "pom.xml"), "<project />\n", "utf8"),
       writeFile(path.join(project.root, "fixtures", "rust", "Cargo.toml"), "[package]\n", "utf8"),
+      writeFile(
+        path.join(project.root, "reference", "python", "pyproject.toml"),
+        "[project]\nname = 'reference'\n",
+        "utf8",
+      ),
+      writeFile(
+        path.join(project.root, "references", "go", "go.mod"),
+        "module references\n",
+        "utf8",
+      ),
       writeFile(
         path.join(project.root, "samples", "dotnet", "Reference.csproj"),
         "<Project />\n",
@@ -877,6 +889,7 @@ describe("CLI foundation", () => {
     expect(firstRunStdout.value).not.toContain("example.py");
     expect(firstRunStdout.value).not.toContain("pom.xml");
     expect(firstRunStdout.value).not.toContain("Cargo.toml");
+    expect(firstRunStdout.value).not.toContain("pyproject.toml");
     expect(firstRunStdout.value).not.toContain("Reference.csproj");
     expect(firstRunStdout.value).not.toContain("go.mod");
   });

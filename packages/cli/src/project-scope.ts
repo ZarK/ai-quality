@@ -22,6 +22,8 @@ export const defaultProjectScopeIgnoredDirectoryNames = new Set([
   "fixtures",
   "node_modules",
   "obj",
+  "reference",
+  "references",
   "samples",
   "target",
   "test-projects",
