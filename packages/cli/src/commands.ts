@@ -1243,8 +1243,7 @@ function createSetupGuidanceOutput(command: SetupGuidanceCommand, subcommand?: s
       return {
         command,
         requested: `hook ${subcommand ?? ""}`.trim(),
-        summary:
-          "Hook installation is handled by the dedicated AIQ hook adapter, not by a mutating CLI command.",
+        summary: "Hook setup uses the dedicated AIQ hook adapter.",
         replacement:
           "Use your repository hook manager to invoke the aiq-hook package, or run aiq check/run directly in pre-commit automation.",
       };
@@ -1252,7 +1251,7 @@ function createSetupGuidanceOutput(command: SetupGuidanceCommand, subcommand?: s
       return {
         command,
         requested: `ci ${subcommand ?? ""}`.trim(),
-        summary: "CI setup generation is replaced by explicit workflow configuration.",
+        summary: "CI setup uses explicit workflow configuration.",
         replacement:
           "Use npx @tjalve/aiq run <files> in CI and keep stage/profile selection in .aiq/aiq.config.json.",
       };
@@ -1260,7 +1259,7 @@ function createSetupGuidanceOutput(command: SetupGuidanceCommand, subcommand?: s
       return {
         command,
         requested: `ignore ${subcommand ?? ""}`.trim(),
-        summary: "Ignore-file mutation is replaced by the canonical AIQ config file.",
+        summary: "Ignored inputs are configured in the canonical AIQ config file.",
         replacement:
           "Run aiq config to initialize .aiq/aiq.config.json, then edit inputs.ignore there so the ignored paths are reviewed with project config.",
       };

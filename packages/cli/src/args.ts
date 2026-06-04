@@ -44,7 +44,7 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
   while (args[0] === "--") {
     args.shift();
   }
-  const isFirstRun = args.length === 0;
+  const isFirstRun = isImplicitFirstRun(args, cwd);
   const commandToken = isFirstRun ? undefined : resolveCommandToken(args[0], cwd);
   const command: CommandName = isFirstRun ? "first-run" : parseCommand(commandToken);
   const startIndex = commandToken === undefined ? 0 : 1;
@@ -207,10 +207,12 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
   if (
     parsed.command !== "run" &&
     parsed.command !== "check" &&
-    (parsed.diffOnly || parsed.dryRun || (parsed.verbose && parsed.command !== "doctor"))
+    (parsed.diffOnly ||
+      parsed.dryRun ||
+      (parsed.verbose && parsed.command !== "doctor" && parsed.command !== "first-run"))
   ) {
     throw new Error(
-      "--diff-only and --dry-run are only supported by run/check; --verbose is supported by run/check/doctor.",
+      "--diff-only and --dry-run are only supported by run/check; --verbose is supported by aiq, run/check, and doctor.",
     );
   }
 
@@ -449,6 +451,34 @@ function resolveCommandToken(token: string | undefined, cwd: string): string | u
   }
 
   return token;
+}
+
+function isImplicitFirstRun(args: readonly string[], cwd: string): boolean {
+  if (args.length === 0) {
+    return true;
+  }
+
+  const first = args[0];
+  if (first === undefined || first === "--help" || first === "-h") {
+    return false;
+  }
+
+  if (isCommandName(first) || looksLikePath(first, cwd)) {
+    return false;
+  }
+
+  if (hasExplicitManifestInput(args)) {
+    return false;
+  }
+
+  return first.startsWith("-");
+}
+
+function hasExplicitManifestInput(args: readonly string[]): boolean {
+  return args.some(
+    (argument) =>
+      argument === "--files" || argument === "--files-from" || argument === "--stdin-file-list",
+  );
 }
 
 function isCommandName(token?: string): token is PublicCommandName {

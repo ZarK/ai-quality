@@ -1245,7 +1245,7 @@ export function resolveStageHandlersFromModules(
 
     return [
       {
-        files: filterFilesForConfiguredLanguages(task.files, languageIds),
+        files: filterFilesForConfiguredToolLanguages(task.files, languageIds, toolId),
         handler,
       },
     ];
@@ -1294,6 +1294,24 @@ function filterFilesForConfiguredLanguages(
   return files.filter((file) =>
     languageIds.some((languageId) => fileMatchesLanguage(file, languageId)),
   );
+}
+
+function filterFilesForConfiguredToolLanguages(
+  files: readonly string[],
+  languageIds: readonly LanguageId[],
+  toolId: string,
+): string[] {
+  if (
+    toolId === "biome" &&
+    (languageIds.includes("javascript") || languageIds.includes("typescript"))
+  ) {
+    return files.filter((file) => {
+      const extension = path.extname(path.resolve(file)).toLowerCase();
+      return biomeExtensions.has(extension) || fileMatchesLanguage(file, "javascript");
+    });
+  }
+
+  return filterFilesForConfiguredLanguages(files, languageIds);
 }
 
 function fileMatchesLanguage(file: string, languageId: LanguageId): boolean {
