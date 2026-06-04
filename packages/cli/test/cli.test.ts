@@ -1794,7 +1794,17 @@ describe("CLI foundation", () => {
 
     try {
       const exitCode = await runCli(
-        ["node", "aiq", "setup", "--stage", "typecheck", "--format", "json"],
+        [
+          "node",
+          "aiq",
+          "setup",
+          "--stage",
+          "typecheck",
+          "--profile",
+          "standard",
+          "--format",
+          "json",
+        ],
         {
           cwd: tempDir,
           stderr,

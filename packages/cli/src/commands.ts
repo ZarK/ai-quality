@@ -752,12 +752,8 @@ function resolveSetupActionStatus(
 }
 
 function formatStageSelectionFlags(parsed: ParsedArgs): string[] {
-  if (parsed.profile !== undefined) {
-    return ["--profile", parsed.profile];
-  }
-
   if (parsed.stages.length === 0) {
-    return [];
+    return parsed.profile === undefined ? [] : ["--profile", parsed.profile];
   }
 
   return parsed.stages.flatMap((stage) => ["--stage", stage]);
