@@ -212,7 +212,7 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
       (parsed.verbose && parsed.command !== "doctor" && parsed.command !== "first-run"))
   ) {
     throw new Error(
-      "--diff-only is only supported by run/check; --dry-run and --verbose are supported by aiq, run/check, and doctor.",
+      "--diff-only is only supported by run/check; --dry-run is supported by aiq and run/check; --verbose is supported by aiq, run/check, and doctor.",
     );
   }
 

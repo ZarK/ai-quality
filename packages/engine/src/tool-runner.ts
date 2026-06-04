@@ -433,7 +433,11 @@ export class ToolRunner {
   }
 
   private quoteWindowsCommandArgument(value: string): string {
-    const escaped = value.replaceAll('"', '""').replaceAll("\r", "").replaceAll("\n", "");
+    const escaped = value
+      .replaceAll("%", "^%")
+      .replaceAll('"', '""')
+      .replaceAll("\r", "")
+      .replaceAll("\n", "");
     return `"${escaped}"`;
   }
 }

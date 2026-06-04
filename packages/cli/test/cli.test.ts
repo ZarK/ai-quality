@@ -3185,6 +3185,7 @@ describe("CLI foundation", () => {
         tool: "aiq-csharp-metrics",
       });
     },
+    // Real .NET SDK restore/build/test/coverage/security can exceed 20s on cold local agents.
     90_000,
   );
 

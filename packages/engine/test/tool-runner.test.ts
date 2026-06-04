@@ -112,6 +112,31 @@ describe("ToolRunner binary lookup", () => {
     }
   });
 
+  it("does not expand Windows command script percent variables in arguments", async () => {
+    if (process.platform !== "win32") {
+      return;
+    }
+
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-tool-runner-percent-"));
+    const scriptPath = path.join(tempDir, "echo.cmd");
+
+    try {
+      await writeFile(scriptPath, '@echo off\r\necho "%~1"\r\n', "utf8");
+
+      const runner = new ToolRunner();
+      const outcome = await runner.run(scriptPath, ["%AIQ_TOOL_RUNNER_TEST_VALUE%"], {
+        cwd: tempDir,
+        env: { AIQ_TOOL_RUNNER_TEST_VALUE: "expanded" },
+      });
+
+      expect(outcome.exitCode).toBe(0);
+      expect(outcome.stdout).not.toContain("expanded");
+      expect(outcome.stdout).toContain("AIQ_TOOL_RUNNER_TEST_VALUE");
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
+
   it("preserves Windows command script failure exit codes", async () => {
     if (process.platform !== "win32") {
       return;
