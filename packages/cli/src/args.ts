@@ -471,6 +471,10 @@ function isImplicitFirstRun(args: readonly string[], cwd: string): boolean {
     return false;
   }
 
+  if (hasPositionalPathInput(args, cwd)) {
+    return false;
+  }
+
   return first.startsWith("-");
 }
 
@@ -478,6 +482,50 @@ function hasExplicitManifestInput(args: readonly string[]): boolean {
   return args.some(
     (argument) =>
       argument === "--files" || argument === "--files-from" || argument === "--stdin-file-list",
+  );
+}
+
+function hasPositionalPathInput(args: readonly string[], cwd: string): boolean {
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === undefined || argument.length === 0) {
+      continue;
+    }
+
+    if (argument.startsWith("-")) {
+      if (flagConsumesNextValue(argument)) {
+        index += 1;
+      }
+      continue;
+    }
+
+    if (looksLikePath(argument, cwd)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function flagConsumesNextValue(flag: string): boolean {
+  return (
+    !flag.includes("=") &&
+    [
+      "--config",
+      "--corpus-root",
+      "--files",
+      "--files-from",
+      "--format",
+      "--host",
+      "--only",
+      "--out-dir",
+      "--port",
+      "--profile",
+      "--scenario",
+      "--stage",
+      "--tag",
+      "--up-to",
+    ].includes(flag)
   );
 }
 

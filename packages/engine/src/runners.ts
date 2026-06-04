@@ -129,6 +129,7 @@ const biomeExtensions = new Set([
   ".ts",
   ".tsx",
 ]);
+const sharedBiomeExtensions = new Set([".json", ".jsonc"]);
 const javaScriptExtensions = new Set([".cjs", ".js", ".jsx", ".mjs"]);
 const typeScriptExtensions = new Set([".cts", ".mts", ".ts", ".tsx"]);
 const javaScriptMetricsSourceExtensions = new Set([
@@ -1307,11 +1308,31 @@ function filterFilesForConfiguredToolLanguages(
   ) {
     return files.filter((file) => {
       const extension = path.extname(path.resolve(file)).toLowerCase();
-      return biomeExtensions.has(extension) || fileMatchesLanguage(file, "javascript");
+      return (
+        sharedBiomeExtensions.has(extension) ||
+        languageIds.some((languageId) => fileMatchesConfiguredBiomeLanguage(file, languageId))
+      );
     });
   }
 
   return filterFilesForConfiguredLanguages(files, languageIds);
+}
+
+function fileMatchesConfiguredBiomeLanguage(file: string, languageId: LanguageId): boolean {
+  const normalizedPath = path.resolve(file);
+  const extension = path.extname(normalizedPath).toLowerCase();
+  const lowerBaseName = path.basename(normalizedPath).toLowerCase();
+
+  switch (languageId) {
+    case "javascript":
+      return (
+        javaScriptExtensions.has(extension) || javaScriptProjectConfigNames.includes(lowerBaseName)
+      );
+    case "typescript":
+      return typeScriptExtensions.has(extension) || lowerBaseName === "tsconfig.json";
+    default:
+      return fileMatchesLanguage(file, languageId);
+  }
 }
 
 function fileMatchesLanguage(file: string, languageId: LanguageId): boolean {

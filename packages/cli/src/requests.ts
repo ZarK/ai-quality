@@ -79,9 +79,9 @@ export async function createManifestInput(
     throw new Error(createMissingManifestMessage(parsed.command));
   }
 
-  if (parsed.command === "run" && manifestFiles.some((file) => file === ".")) {
+  if ((parsed.command === "run" || parsed.command === "check") && manifestFiles.includes(".")) {
     throw new Error(
-      "Use aiq for the configured project gate. Use aiq run <paths...> only when you want explicit file or subtree targets.",
+      `Use aiq for the configured project gate. Use aiq ${parsed.command} <paths...> only when you want explicit file or subtree targets.`,
     );
   }
 
