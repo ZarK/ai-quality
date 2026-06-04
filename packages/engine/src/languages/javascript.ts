@@ -11,6 +11,7 @@ import type {
   StageResult,
   ToolRunResult,
 } from "../contracts.js";
+import { createLizardMetricsDiagnostics } from "../metrics-thresholds.js";
 import * as parsers from "../parsers/index.js";
 import type { LizardMetricsFileMetrics } from "../parsers/lizard.js";
 import { resolveProjectConcurrencyLimit } from "../runtime-tunables.js";
@@ -227,6 +228,7 @@ export async function runJavaScriptMetricsTask(
     );
   }
 
+  const diagnostics: Diagnostic[] = [];
   const notes: string[] = [];
   const toolRuns = [] as ReturnType<JavaScriptRunnerRuntime["createToolRunResult"]>[];
   let totalDurationMs = 0;
@@ -285,6 +287,9 @@ export async function runJavaScriptMetricsTask(
           minMaintainabilityRank = fileMetrics.maintainability.rank;
         }
       }
+      diagnostics.push(
+        ...createLizardMetricsDiagnostics(cachedMetrics.metrics.files, mode, "lizard"),
+      );
     }
   } catch (error) {
     runtime.throwIfAbortError(error);
@@ -294,7 +299,7 @@ export async function runJavaScriptMetricsTask(
       files[0] ?? runtime.cwd,
       error,
       totalDurationMs,
-      [],
+      diagnostics,
       toolRuns,
     );
   }
@@ -325,11 +330,11 @@ export async function runJavaScriptMetricsTask(
   }
 
   return {
-    diagnostics: [],
+    diagnostics,
     durationMs: totalDurationMs,
     notes,
     stageId: task.stageId,
-    status: "passed",
+    status: diagnostics.length > 0 ? "failed" : "passed",
     toolRuns,
   };
 }

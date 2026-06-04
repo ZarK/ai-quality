@@ -1,10 +1,10 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { readIntegerString } from "./utils.js";
 
 export interface LizardMetricsFileMetrics {
   blockCount: number;
+  blocks: LizardMetricsBlock[];
   maintainability: {
     rank: string;
     score: number;
@@ -18,6 +18,15 @@ export interface LizardMetricsFileMetrics {
   };
 }
 
+export interface LizardMetricsBlock {
+  complexity: number;
+  file: string;
+  name: string;
+  nloc: number;
+  parameterCount: number;
+  startLine: number;
+}
+
 export async function parseLizardMetrics(
   output: string,
   cwd: string,
@@ -28,31 +37,37 @@ export async function parseLizardMetrics(
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => parseCsvLine(line));
-  const rowMetrics = new Map<string, Array<{ complexity: number; file: string }>>();
+  const rowMetrics = new Map<string, LizardMetricsBlock[]>();
 
   for (const row of rows) {
+    const nloc = readIntegerString(row[0]);
     const complexity = readIntegerString(row[1]);
+    const parameterCount = readIntegerString(row[3]);
     const file = row[6] === undefined ? undefined : path.resolve(cwd, row[6]);
-    if (complexity === undefined || file === undefined) {
+    const name = row[7] ?? "<anonymous>";
+    const startLine = readIntegerString(row[9]) ?? 1;
+    if (
+      nloc === undefined ||
+      complexity === undefined ||
+      parameterCount === undefined ||
+      file === undefined
+    ) {
       continue;
     }
 
+    const block = { complexity, file, name, nloc, parameterCount, startLine };
     const existingRows = rowMetrics.get(file);
     if (existingRows === undefined) {
-      rowMetrics.set(file, [{ complexity, file }]);
+      rowMetrics.set(file, [block]);
       continue;
     }
-    existingRows.push({ complexity, file });
+    existingRows.push(block);
   }
 
   const files = await Promise.all(
     selectedFiles.map(async (file) => {
-      const source = await readFile(file, "utf8");
-      const sloc = source
-        .split(/\r?\n/u)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0).length;
       const blocks = rowMetrics.get(file) ?? [];
+      const sloc = blocks.reduce((total, block) => total + block.nloc, 0);
       const maxComplexity = blocks.reduce((max, block) => Math.max(max, block.complexity), 0);
       const maintainabilityScore = clampNumber(
         100 -
@@ -67,6 +82,7 @@ export async function parseLizardMetrics(
         file,
         {
           blockCount: blocks.length,
+          blocks,
           maintainability: {
             rank: rankMaintainabilityScore(maintainabilityScore),
             score: maintainabilityScore,
