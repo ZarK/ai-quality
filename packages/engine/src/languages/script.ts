@@ -142,11 +142,22 @@ export async function resolveBashProjectTestFiles(
     return [...new Set(selectedTestFiles)].sort((left, right) => left.localeCompare(right));
   }
 
-  return findMatchingFiles(
-    project.projectRoot,
-    (filePath) => bashTestExtensions.has(path.extname(filePath).toLowerCase()),
-    shouldSkipScriptProjectDirectory,
-  );
+  const selectedDirectories = [
+    ...new Set(project.files.map((file) => path.dirname(path.resolve(file)))),
+  ].sort((left, right) => left.localeCompare(right));
+  const discoveredTestFiles = (
+    await Promise.all(
+      selectedDirectories.map((directory) =>
+        findMatchingFiles(
+          directory,
+          (filePath) => bashTestExtensions.has(path.extname(filePath).toLowerCase()),
+          shouldSkipScriptProjectDirectory,
+        ),
+      ),
+    )
+  ).flat();
+
+  return [...new Set(discoveredTestFiles)].sort((left, right) => left.localeCompare(right));
 }
 
 export async function resolvePowerShellProjectTestFiles(

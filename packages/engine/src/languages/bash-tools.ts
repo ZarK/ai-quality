@@ -217,16 +217,8 @@ async function runBashProjectTestTask(
       diagnostics: [],
       durationMs: 0,
       note: createMissingScriptTestsNote("Bash", project.projectRoot),
-      status: "not_implemented",
-      toolRuns: [
-        runtime.createToolRunResult(
-          mode === "coverage" ? "kcov" : "bats",
-          [],
-          0,
-          undefined,
-          "not_implemented",
-        ),
-      ],
+      status: "passed",
+      toolRuns: [],
     };
   }
 

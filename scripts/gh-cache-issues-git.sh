@@ -65,27 +65,31 @@ EOF
 # Add recent commits with issue references
 if [ "$IN_GIT_REPO" = true ]; then
 	echo "🔍 Analyzing recent commits for issue references..."
-	git log --oneline -20 --decorate >>"${CACHE_DIR}/project-status.md" 2>/dev/null || echo "No git history available" >>"${CACHE_DIR}/project-status.md"
+	{
+		git log --oneline -20 --decorate 2>/dev/null || echo "No git history available"
 
-	# Extract issue numbers from commit messages
-	echo -e "\n### Issue References in Recent Commits" >>"${CACHE_DIR}/project-status.md"
-	git log --oneline -50 2>/dev/null | grep -E '#[0-9]+' | head -10 >>"${CACHE_DIR}/project-status.md" || echo "No issue references found in recent commits" >>"${CACHE_DIR}/project-status.md"
+		# Extract issue numbers from commit messages
+		echo -e "\n### Issue References in Recent Commits"
+		git log --oneline -50 2>/dev/null | grep -E '#[0-9]+' | head -10 || echo "No issue references found in recent commits"
 
-	# Add branch information
-	echo -e "\n### Branch Information" >>"${CACHE_DIR}/project-status.md"
-	echo "**Current Branch:** $CURRENT_BRANCH" >>"${CACHE_DIR}/project-status.md"
-	echo "**All Branches:**" >>"${CACHE_DIR}/project-status.md"
-	git branch -a 2>/dev/null | head -20 >>"${CACHE_DIR}/project-status.md" || echo "No branches available" >>"${CACHE_DIR}/project-status.md"
+		# Add branch information
+		echo -e "\n### Branch Information"
+		echo "**Current Branch:** $CURRENT_BRANCH"
+		echo "**All Branches:**"
+		git branch -a 2>/dev/null | head -20 || echo "No branches available"
 
-	# Check for feature branches that might indicate active work
-	echo -e "\n### Feature Branches (Active Work)" >>"${CACHE_DIR}/project-status.md"
-	git branch -a 2>/dev/null | grep -E "(feature|fix|issue)" | head -10 >>"${CACHE_DIR}/project-status.md" || echo "No feature branches found" >>"${CACHE_DIR}/project-status.md"
+		# Check for feature branches that might indicate active work
+		echo -e "\n### Feature Branches (Active Work)"
+		git branch -a 2>/dev/null | grep -E "(feature|fix|issue)" | head -10 || echo "No feature branches found"
+	} >>"${CACHE_DIR}/project-status.md"
 else
 	echo "ℹ️  Git context not available - using general repository information"
-	echo -e "\n### Repository Information" >>"${CACHE_DIR}/project-status.md"
-	echo "**Repository:** $REPO_URL" >>"${CACHE_DIR}/project-status.md"
-	echo "**Default Branch:** $CURRENT_BRANCH" >>"${CACHE_DIR}/project-status.md"
-	echo "**Environment:** Non-git setup (Codex environment)" >>"${CACHE_DIR}/project-status.md"
+	{
+		echo -e "\n### Repository Information"
+		echo "**Repository:** $REPO_URL"
+		echo "**Default Branch:** $CURRENT_BRANCH"
+		echo "**Environment:** Non-git setup (Codex environment)"
+	} >>"${CACHE_DIR}/project-status.md"
 fi
 
 # Analyze CLAUDE.md for known issues and priorities
@@ -133,15 +137,19 @@ EOF
 
 if [ "$IN_GIT_REPO" = true ]; then
 	# Show files changed in recent commits
-	git log --name-only --oneline -10 2>/dev/null | grep -v "^[a-f0-9]" | sort | uniq -c | sort -nr | head -20 >>"${CACHE_DIR}/recent-changes.md" || echo "No recent file changes available" >>"${CACHE_DIR}/recent-changes.md"
+	{
+		git log --name-only --oneline -10 2>/dev/null | grep -v "^[a-f0-9]" | sort | uniq -c | sort -nr | head -20 || echo "No recent file changes available"
 
-	# Add current working tree status
-	echo -e "\n## Current Working Tree Status" >>"${CACHE_DIR}/recent-changes.md"
-	git status --porcelain 2>/dev/null >>"${CACHE_DIR}/recent-changes.md" || echo "Clean working tree" >>"${CACHE_DIR}/recent-changes.md"
+		# Add current working tree status
+		echo -e "\n## Current Working Tree Status"
+		git status --porcelain 2>/dev/null || echo "Clean working tree"
+	} >>"${CACHE_DIR}/recent-changes.md"
 else
-	echo "Git history not available in this environment" >>"${CACHE_DIR}/recent-changes.md"
-	echo -e "\n## Environment Status" >>"${CACHE_DIR}/recent-changes.md"
-	echo "Running in non-git environment (likely Codex setup)" >>"${CACHE_DIR}/recent-changes.md"
+	{
+		echo "Git history not available in this environment"
+		echo -e "\n## Environment Status"
+		echo "Running in non-git environment (likely Codex setup)"
+	} >>"${CACHE_DIR}/recent-changes.md"
 fi
 
 # Create component analysis from directory structure
@@ -157,25 +165,36 @@ EOF
 # Analyze project structure (works in both git and non-git environments)
 if [ -d "src" ]; then
 	echo "### Source Code Components" >>"${CACHE_DIR}/project-structure.md"
-	find src -type f -name "*.py" 2>/dev/null | head -20 | while read file; do
+	find src -type f -name "*.py" 2>/dev/null | head -20 | while read -r file; do
 		echo "- $file" >>"${CACHE_DIR}/project-structure.md"
 	done
 else
-	echo "### Project Structure" >>"${CACHE_DIR}/project-structure.md"
-	echo "Source directory not found in current location" >>"${CACHE_DIR}/project-structure.md"
-	echo "This is likely a Codex environment - refer to GitHub repository for structure" >>"${CACHE_DIR}/project-structure.md"
+	{
+		echo "### Project Structure"
+		echo "Source directory not found in current location"
+		echo "This is likely a Codex environment - refer to GitHub repository for structure"
+	} >>"${CACHE_DIR}/project-structure.md"
 fi
 
 # Analyze tests
 if [ -d "tests" ]; then
-	echo -e "\n### Test Coverage" >>"${CACHE_DIR}/project-structure.md"
-	find tests -name "*.py" 2>/dev/null | wc -l | xargs echo "- Test files:" >>"${CACHE_DIR}/project-structure.md"
-	find tests -name "*.py" 2>/dev/null | head -10 >>"${CACHE_DIR}/project-structure.md"
+	{
+		echo -e "\n### Test Coverage"
+		find tests -name "*.py" 2>/dev/null | wc -l | xargs echo "- Test files:"
+		find tests -name "*.py" 2>/dev/null | head -10
+	} >>"${CACHE_DIR}/project-structure.md"
 fi
 
 # Check for configuration files that might indicate current focus
 echo -e "\n### Configuration Files" >>"${CACHE_DIR}/project-structure.md"
-ls -la *.yaml *.yml *.json *.md 2>/dev/null | head -10 >>"${CACHE_DIR}/project-structure.md" || echo "Configuration files not found in current directory" >>"${CACHE_DIR}/project-structure.md"
+config_files=$(find . -maxdepth 1 \( -name "*.yaml" -o -name "*.yml" -o -name "*.json" -o -name "*.md" \) -print 2>/dev/null | sort | head -10)
+if [ -n "$config_files" ]; then
+	while IFS= read -r config_file; do
+		ls -la "$config_file"
+	done <<<"$config_files" >>"${CACHE_DIR}/project-structure.md"
+else
+	echo "Configuration files not found in current directory" >>"${CACHE_DIR}/project-structure.md"
+fi
 
 # Create summary for Codex (different filename if GitHub CLI cache exists)
 if [ "$GH_CACHE_EXISTS" = true ]; then
@@ -228,7 +247,7 @@ echo "✅ Git-based cache complete!"
 echo ""
 if [ "$GH_CACHE_EXISTS" = true ]; then
 	echo "📁 Git context added to existing GitHub CLI cache:"
-	echo "   📄 GitHub issues: $(ls "${CACHE_DIR}"/issue-*.md 2>/dev/null | wc -l | tr -d ' ') detailed files"
+	echo "   📄 GitHub issues: $(find "$CACHE_DIR" -maxdepth 1 -name 'issue-*.md' 2>/dev/null | wc -l | tr -d ' ') detailed files"
 	echo "   📄 Git context: project-status.md, known-issues.md, codex-guidance.md"
 	echo "   📄 Summary: README.md (GitHub) + git-context.md (Git)"
 else

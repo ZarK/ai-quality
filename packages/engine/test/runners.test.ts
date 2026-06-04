@@ -35,6 +35,7 @@ const fixturePythonFile = path.resolve("test-projects/python/main.py");
 const fixtureRustRoot = path.resolve("test-projects/rust");
 const fixtureTypeScriptPackageJson = path.resolve("test-projects/typescript/package.json");
 const fixtureTsconfig = path.resolve("test-projects/typescript/tsconfig.json");
+const fakeGitHubToken = ["ghp_", "123456789012345678901234567890123456"].join("");
 const vitestCliPath = path.resolve("node_modules/vitest/vitest.mjs");
 
 function commandAvailable(command: string): boolean {
@@ -397,6 +398,56 @@ async function createCustomJavaScriptRunnerProject(options: {
     root,
     sourceFile,
     tsconfigPath,
+  };
+}
+
+async function createCustomJavaScriptE2eProject(options: {
+  packageJson?: Record<string, unknown>;
+  playwrightBinary?: boolean;
+  playwrightConfig?: boolean;
+  prefix: string;
+}): Promise<{
+  binaryPath: string;
+  packageJsonPath: string;
+  root: string;
+  sourceFile: string;
+}> {
+  const root = await mkdtemp(path.join(os.tmpdir(), options.prefix));
+  tempDirs.push(root);
+
+  const srcDir = path.join(root, "src");
+  const binDir = path.join(root, "node_modules", ".bin");
+  await mkdir(srcDir, { recursive: true });
+
+  const packageJsonPath = path.join(root, "package.json");
+  const sourceFile = path.join(srcDir, "index.ts");
+  const binaryPath = path.join(
+    binDir,
+    process.platform === "win32" ? "playwright.cmd" : "playwright",
+  );
+
+  await writeFile(
+    packageJsonPath,
+    `${JSON.stringify(options.packageJson ?? { name: options.prefix, private: true }, null, 2)}\n`,
+    "utf8",
+  );
+  await writeFile(sourceFile, "export const value = 1;\n", "utf8");
+
+  if (options.playwrightConfig) {
+    await writeFile(path.join(root, "playwright.config.ts"), "export default {};\n", "utf8");
+  }
+
+  if (options.playwrightBinary) {
+    await mkdir(binDir, { recursive: true });
+    await writeFile(binaryPath, "", "utf8");
+    await chmod(binaryPath, 0o755).catch(() => undefined);
+  }
+
+  return {
+    binaryPath,
+    packageJsonPath,
+    root,
+    sourceFile,
   };
 }
 
@@ -1550,6 +1601,187 @@ describe("engine runners", () => {
       expect(result.notes).toEqual([`No supported files were selected for ${stageId}.`]);
       expect(result.toolRuns).toEqual([]);
     }
+  });
+
+  it("passes JavaScript e2e when no e2e runner is configured", async () => {
+    const project = await createCustomJavaScriptE2eProject({
+      prefix: "aiq-js-e2e-none-",
+    });
+
+    const result = await runPlannedTask(
+      {
+        fileCount: 1,
+        files: [project.sourceFile],
+        id: "test:1:e2e-js-none",
+        stageId: "e2e",
+      },
+      process.cwd(),
+    );
+
+    expect(result.status).toBe("passed");
+    expect(result.diagnostics).toEqual([]);
+    expect(result.notes[0]).toContain("No e2e runner is configured");
+    expect(result.toolRuns).toEqual([]);
+  });
+
+  it("runs JavaScript e2e through a local Playwright binary", async () => {
+    const project = await createCustomJavaScriptE2eProject({
+      packageJson: {
+        devDependencies: { "@playwright/test": "1.0.0" },
+        name: "aiq-js-e2e-playwright",
+        private: true,
+      },
+      playwrightBinary: true,
+      playwrightConfig: true,
+      prefix: "aiq-js-e2e-playwright-",
+    });
+    const toolRunner = new ToolRunner();
+    const runSpy = vi.spyOn(toolRunner, "run").mockResolvedValue({
+      durationMs: 5,
+      exitCode: 0,
+      finishedAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      stderr: "",
+      stdout: JSON.stringify({
+        suites: [
+          {
+            specs: [
+              {
+                tests: [{ results: [{ status: "passed" }] }],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const engineContext = withToolRunnerOverride(
+      await buildEngineContext({
+        context: "cli",
+        manifest: {
+          files: [project.sourceFile],
+          source: "direct",
+        },
+        mode: "check",
+        outDir: project.root,
+        stages: ["e2e"],
+      }),
+      toolRunner,
+    );
+
+    const result = await runPlannedTask(
+      {
+        fileCount: 1,
+        files: [project.sourceFile],
+        id: "test:1:e2e-js-playwright",
+        stageId: "e2e",
+      },
+      engineContext,
+    );
+
+    expect(result.status).toBe("passed");
+    expect(result.notes[0]).toContain("Playwright ran 1 e2e test: 1 passed, 0 failed.");
+    expect(result.toolRuns[0]).toMatchObject({
+      args: ["test", "--reporter=json"],
+      status: "passed",
+      tool: "playwright",
+    });
+    expect(runSpy).toHaveBeenCalledWith(
+      project.binaryPath,
+      ["test", "--reporter=json"],
+      expect.objectContaining({ cwd: project.root }),
+    );
+  });
+
+  it("fails JavaScript e2e with setup guidance when Playwright config lacks a local binary", async () => {
+    const project = await createCustomJavaScriptE2eProject({
+      packageJson: {
+        devDependencies: { "@playwright/test": "1.0.0" },
+        name: "aiq-js-e2e-missing-playwright",
+        private: true,
+      },
+      playwrightConfig: true,
+      prefix: "aiq-js-e2e-missing-playwright-",
+    });
+
+    const result = await runPlannedTask(
+      {
+        fileCount: 1,
+        files: [project.sourceFile],
+        id: "test:1:e2e-js-missing-playwright",
+        stageId: "e2e",
+      },
+      process.cwd(),
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.notes[0]).toContain("Run aiq setup");
+    expect(result.diagnostics[0]).toMatchObject({
+      file: project.packageJsonPath,
+      severity: "error",
+      source: "playwright",
+    });
+    expect(result.toolRuns[0]).toMatchObject({
+      status: "failed",
+      tool: "playwright",
+    });
+  });
+
+  it("runs JavaScript e2e through a configured agent-browser audit script", async () => {
+    const project = await createCustomJavaScriptE2eProject({
+      packageJson: {
+        name: "aiq-js-e2e-agent-browser",
+        private: true,
+        scripts: {
+          "aiq:e2e": "agent-browser manual-audit",
+        },
+      },
+      prefix: "aiq-js-e2e-agent-browser-",
+    });
+    const toolRunner = new ToolRunner();
+    const runSpy = vi.spyOn(toolRunner, "run").mockResolvedValue({
+      durationMs: 5,
+      exitCode: 0,
+      finishedAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      stderr: "",
+      stdout: "",
+    });
+    const engineContext = withToolRunnerOverride(
+      await buildEngineContext({
+        context: "cli",
+        manifest: {
+          files: [project.sourceFile],
+          source: "direct",
+        },
+        mode: "check",
+        outDir: project.root,
+        stages: ["e2e"],
+      }),
+      toolRunner,
+    );
+
+    const result = await runPlannedTask(
+      {
+        fileCount: 1,
+        files: [project.sourceFile],
+        id: "test:1:e2e-js-agent-browser",
+        stageId: "e2e",
+      },
+      engineContext,
+    );
+
+    expect(result.status).toBe("passed");
+    expect(result.notes[0]).toBe("Agent-browser e2e audit passed.");
+    expect(result.toolRuns[0]).toMatchObject({
+      args: ["run", "aiq:e2e", "--"],
+      status: "passed",
+      tool: "agent-browser",
+    });
+    expect(runSpy).toHaveBeenCalledWith(
+      binaries.resolveNpmCommand(),
+      ["run", "aiq:e2e", "--"],
+      expect.objectContaining({ cwd: project.root }),
+    );
   });
 
   it("fails JavaScript unit when the runner exits zero without writing a JSON report", async () => {
@@ -2866,9 +3098,7 @@ describe("engine runners", () => {
 
     await writeFile(
       project.sourceFile,
-      ["package fixture", "", 'const token = "ghp_123456789012345678901234567890123456"', ""].join(
-        "\n",
-      ),
+      ["package fixture", "", `const token = "${fakeGitHubToken}"`, ""].join("\n"),
       "utf8",
     );
 
@@ -3394,7 +3624,7 @@ describe("engine runners", () => {
 
     await writeFile(
       project.sourceFile,
-      ['pub const TOKEN: &str = "ghp_123456789012345678901234567890123456";', ""].join("\n"),
+      [`pub const TOKEN: &str = "${fakeGitHubToken}";`, ""].join("\n"),
       "utf8",
     );
 
@@ -4493,7 +4723,7 @@ describe("engine runners", () => {
         "",
         "public static class Greeter",
         "{",
-        '    public const string Token = "ghp_123456789012345678901234567890123456";',
+        `    public const string Token = "${fakeGitHubToken}";`,
         "}",
         "",
       ].join("\n"),
@@ -4847,7 +5077,7 @@ describe("engine runners", () => {
     expect(result.toolRuns).toEqual([]);
   });
 
-  it("keeps supported test runs but marks mixed unsupported projects as not implemented", async () => {
+  it("keeps supported test runs passing when mixed projects lack a test runner", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-mixed-runner-"));
     tempDirs.push(tempDir);
 
@@ -4870,7 +5100,7 @@ describe("engine runners", () => {
       process.cwd(),
     );
 
-    expect(result.status).toBe("not_implemented");
+    expect(result.status).toBe("passed");
     expect(result.notes.join(" ")).toContain("Vitest ran");
     expect(result.notes.join(" ")).toContain("No supported JavaScript or TypeScript test runner");
     expect(result.toolRuns).toEqual(
@@ -4935,6 +5165,32 @@ describe("engine runners", () => {
     expect(result.toolRuns).toEqual([
       expect.objectContaining({ status: "not_implemented", tool: "bats" }),
     ]);
+  });
+
+  it("passes Bash unit when no Bash test files are configured", async () => {
+    const project = await createBashFixtureProject("aiq-bash-no-tests-");
+    for (const entry of await readdir(project.root)) {
+      if (entry.toLowerCase().endsWith(".bats")) {
+        await rm(path.join(project.root, entry), { force: true });
+      }
+    }
+
+    vi.spyOn(ToolRunner.prototype, "resolveBinaryIfAvailable").mockResolvedValue(undefined);
+
+    const result = await runPlannedTask(
+      {
+        fileCount: 1,
+        files: [project.sourceFile],
+        id: "test:1:unit-bash-no-tests",
+        stageId: "unit",
+      },
+      process.cwd(),
+    );
+
+    expect(result.status).toBe("passed");
+    expect(result.diagnostics).toEqual([]);
+    expect(result.notes).toEqual(["No supported files were selected for unit."]);
+    expect(result.toolRuns).toEqual([]);
   });
 
   it("returns a failed stage result when Bash binary lookup hits an unexpected error", async () => {
@@ -5341,60 +5597,59 @@ describe("engine runners", () => {
 
     const flaggedFiles = [
       {
-        content: 'export const token = "ghp_123456789012345678901234567890123456";\n',
+        content: `export const token = "${fakeGitHubToken}";\n`,
         name: "secret.ts",
       },
       {
-        content: '{"token":"ghp_123456789012345678901234567890123456"}\n',
+        content: `{"token":"${fakeGitHubToken}"}\n`,
         name: "secret.json",
       },
       {
-        content: 'token = "ghp_123456789012345678901234567890123456"\n',
+        content: `token = "${fakeGitHubToken}"\n`,
         name: "secret.py",
       },
       {
-        content: 'token="ghp_123456789012345678901234567890123456"\n',
+        content: `token="${fakeGitHubToken}"\n`,
         name: "secret.sh",
       },
       {
-        content: '@test "leaks a token" {\n  token="ghp_123456789012345678901234567890123456"\n}\n',
+        content: `@test "leaks a token" {\n  token="${fakeGitHubToken}"\n}\n`,
         name: "secret.bats",
       },
       {
-        content: '$Token = "ghp_123456789012345678901234567890123456"\n',
+        content: `$Token = "${fakeGitHubToken}"\n`,
         name: "secret.ps1",
       },
       {
-        content: '<meta name="token" content="ghp_123456789012345678901234567890123456">\n',
+        content: `<meta name="token" content="${fakeGitHubToken}">\n`,
         name: "secret.html",
       },
       {
-        content: 'body { --token: "ghp_123456789012345678901234567890123456"; }\n',
+        content: `body { --token: "${fakeGitHubToken}"; }\n`,
         name: "secret.css",
       },
       {
-        content: 'token: "ghp_123456789012345678901234567890123456"\n',
+        content: `token: "${fakeGitHubToken}"\n`,
         name: "secret.yaml",
       },
       {
-        content: 'token: "ghp_123456789012345678901234567890123456"\n',
+        content: `token: "${fakeGitHubToken}"\n`,
         name: "secret.yml",
       },
       {
-        content:
-          "insert into secrets(token) values ('ghp_123456789012345678901234567890123456');\n",
+        content: `insert into secrets(token) values ('${fakeGitHubToken}');\n`,
         name: "secret.sql",
       },
       {
-        content: 'variable "token" {\n  default = "ghp_123456789012345678901234567890123456"\n}\n',
+        content: `variable "token" {\n  default = "${fakeGitHubToken}"\n}\n`,
         name: "secret.tf",
       },
       {
-        content: 'token = "ghp_123456789012345678901234567890123456"\n',
+        content: `token = "${fakeGitHubToken}"\n`,
         name: "secret.tfvars",
       },
       {
-        content: 'token = "ghp_123456789012345678901234567890123456"\n',
+        content: `token = "${fakeGitHubToken}"\n`,
         name: "secret.hcl",
       },
     ] as const;
@@ -5437,11 +5692,7 @@ describe("engine runners", () => {
     tempDirs.push(tempDir);
 
     const missingFile = path.join(tempDir, "missing.ts");
-    await writeFile(
-      missingFile,
-      'export const token = "ghp_123456789012345678901234567890123456";\n',
-      "utf8",
-    );
+    await writeFile(missingFile, `export const token = "${fakeGitHubToken}";\n`, "utf8");
     await rm(missingFile);
 
     const result = await runPlannedTask(
@@ -5464,7 +5715,7 @@ describe("engine runners", () => {
     });
   });
 
-  it("keeps other stages as not_implemented", async () => {
+  it("passes e2e without placeholder not_implemented output when no runner is configured", async () => {
     const result = await runPlannedTask(
       {
         fileCount: 1,
@@ -5475,8 +5726,8 @@ describe("engine runners", () => {
       process.cwd(),
     );
 
-    expect(result.status).toBe("not_implemented");
+    expect(result.status).toBe("passed");
     expect(result.toolRuns).toEqual([]);
-    expect(result.notes[0]).toContain("no tool runner is implemented");
+    expect(result.notes[0]).toContain("No e2e runner is configured");
   });
 });

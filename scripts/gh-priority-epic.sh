@@ -38,7 +38,8 @@ echo "$issues" | sort -t'|' -k2,2 -k1,1 | while IFS='|' read -r epic priority st
 		"Epic-Planning") echo "🎯 MASTER PLANNING" ;;
 		*) echo "📋 OTHER ISSUES" ;;
 		esac
-		echo "$(printf '%.0s─' {1..40})"
+		printf '%.0s─' {1..40}
+		echo ""
 
 		current_epic="$epic"
 		epic_counter=1

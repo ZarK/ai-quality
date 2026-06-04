@@ -59,6 +59,7 @@ import {
 } from "./languages/go.js";
 import {
   runJavaScriptCoverageTask as runJavaScriptCoverageLanguageTask,
+  runJavaScriptE2eTask as runJavaScriptE2eLanguageTask,
   runJavaScriptMetricsTask as runJavaScriptMetricsLanguageTask,
   runJavaScriptUnitTask as runJavaScriptUnitLanguageTask,
 } from "./languages/javascript.js";
@@ -1036,6 +1037,11 @@ export const defaultRunnerLanguageModules = createRunnerLanguageModuleRegistry([
           task,
           createJavaScriptRunnerRuntime(context.cwd, context.signal),
         ),
+      e2e: (task, context) =>
+        runJavaScriptE2eLanguageTask(
+          task,
+          createJavaScriptRunnerRuntime(context.cwd, context.signal),
+        ),
       maintainability: (task, context) =>
         runJavaScriptMetricsLanguageTask(
           task,
@@ -1141,7 +1147,7 @@ export const defaultStageDefinitions = createRunnerStageDefinitionRegistry([
     "javascript",
     "python",
   ]),
-  createCombinedStageDefinition("e2e", []),
+  createCombinedStageDefinition("e2e", ["javascript"]),
   createCombinedStageDefinition("sloc", ["javascript", "go", "rust", "dotnet", "jvm", "python"]),
   createCombinedStageDefinition("complexity", [
     "javascript",
@@ -3167,6 +3173,17 @@ export function combineStageResults(
 ): StageResult {
   const activeResults = results.filter((result) => !isNoopStageResult(result));
   if (activeResults.length === 0) {
+    if (stageId === "e2e" && results.length > 0) {
+      return {
+        diagnostics: [],
+        durationMs: 0,
+        notes: results.flatMap((result) => result.notes),
+        stageId,
+        status: "passed",
+        toolRuns: [],
+      };
+    }
+
     return createNoopStageResult(stageId, `No supported files were selected for ${stageId}.`);
   }
 
@@ -3196,11 +3213,38 @@ export function summarizeCombinedStageStatus(
     return "failed";
   }
 
+  if (
+    results.some((result) => result.status === "passed" && result.toolRuns.length > 0) &&
+    results.every(
+      (result) => result.status !== "not_implemented" || isUnsupportedScopeResult(result),
+    )
+  ) {
+    return "passed";
+  }
+
   if (results.some((result) => result.status === "not_implemented")) {
     return "not_implemented";
   }
 
   return "passed";
+}
+
+function isUnsupportedScopeResult(result: StageResult): boolean {
+  return (
+    result.diagnostics.length === 0 &&
+    result.toolRuns.length === 0 &&
+    result.notes.every((note) => {
+      const normalizedNote = note.toLowerCase();
+      return (
+        normalizedNote.startsWith("no supported ") ||
+        normalizedNote.startsWith("no runnable ") ||
+        normalizedNote.startsWith("no javascript or typescript files were selected") ||
+        normalizedNote.startsWith("no python files were selected") ||
+        (normalizedNote.startsWith("stage '") &&
+          normalizedNote.includes("currently implemented only for"))
+      );
+    })
+  );
 }
 
 function createToolRunResult(

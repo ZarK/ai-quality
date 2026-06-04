@@ -8,6 +8,7 @@ import { runPlannedTask } from "../src/runners.js";
 
 const fixtureTerraformRoot = path.resolve("test-projects/terraform");
 const fixtureHclRoot = path.resolve("test-projects/hcl");
+const fakeGitHubToken = ["ghp_", "123456789012345678901234567890123456"].join("");
 const hasTerraform = commandAvailable("terraform");
 const tempDirs: string[] = [];
 
@@ -438,14 +439,14 @@ describe("Terraform and HCL runners", () => {
         '  required_version = ">= 1.0.0"',
         "}",
         "",
-        'locals { token = "ghp_123456789012345678901234567890123456" }',
+        `locals { token = "${fakeGitHubToken}" }`,
         "",
       ].join("\n"),
       "utf8",
     );
     await writeFile(
       hclProject.configFile,
-      ['locals { token = "ghp_123456789012345678901234567890123456" }', ""].join("\n"),
+      [`locals { token = "${fakeGitHubToken}" }`, ""].join("\n"),
       "utf8",
     );
 

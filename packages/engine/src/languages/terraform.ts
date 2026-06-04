@@ -241,11 +241,18 @@ async function runTerraformNativeFormatStage(
   let totalDurationMs = 0;
 
   try {
-    const projectResults = await runProjectBatches(
-      (await resolveHashicorpProjects(runtime.graph, files)).filter(
-        (project) => project.terraformFiles.length > 0,
-      ),
-      async (project) => runTerraformFormatProject(project, terraformBinary, runtime),
+    const projects = (await resolveHashicorpProjects(runtime.graph, files)).filter(
+      (project) => project.terraformFiles.length > 0,
+    );
+    if (projects.length === 0) {
+      return runtime.createNotImplementedStageResult(
+        task.stageId,
+        "No Terraform project could be resolved for the selected Terraform files.",
+      );
+    }
+
+    const projectResults = await runProjectBatches(projects, async (project) =>
+      runTerraformFormatProject(project, terraformBinary, runtime),
     );
 
     for (const projectResult of projectResults) {
@@ -307,18 +314,23 @@ async function runTerraformValidateStage(
   let reusedCachedValidation = false;
 
   try {
-    const projectResults = await runProjectBatches(
-      (await resolveHashicorpProjects(runtime.graph, files)).filter(
-        (project) => project.terraformFiles.length > 0,
-      ),
-      async (project) => {
-        const cachedValidation = await getTerraformValidationProjectResult(project, runtime);
-        return {
-          cacheHit: cachedValidation.cacheHit,
-          ...cachedValidation.result,
-        };
-      },
+    const projects = (await resolveHashicorpProjects(runtime.graph, files)).filter(
+      (project) => project.terraformFiles.length > 0,
     );
+    if (projects.length === 0) {
+      return runtime.createNotImplementedStageResult(
+        task.stageId,
+        "No Terraform project could be resolved for the selected Terraform files.",
+      );
+    }
+
+    const projectResults = await runProjectBatches(projects, async (project) => {
+      const cachedValidation = await getTerraformValidationProjectResult(project, runtime);
+      return {
+        cacheHit: cachedValidation.cacheHit,
+        ...cachedValidation.result,
+      };
+    });
 
     for (const projectResult of projectResults) {
       totalDurationMs += projectResult.cacheHit ? 0 : projectResult.durationMs;

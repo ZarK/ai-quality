@@ -654,5 +654,68 @@ describe("engine modular authoring path", () => {
         createStageResult("lint", "failed"),
       ]).status,
     ).toBe("failed");
+
+    expect(
+      combineStageResults("unit", [
+        {
+          ...createStageResult("unit", "passed"),
+          toolRuns: [
+            {
+              args: [],
+              cacheHit: false,
+              durationMs: 1,
+              status: "passed",
+              tool: "vitest",
+            },
+          ],
+        },
+        createNotImplementedStageResult(
+          "unit",
+          "No supported JavaScript or TypeScript test runner was detected for unit in: packages/example.",
+        ),
+      ]).status,
+    ).toBe("passed");
+
+    expect(
+      combineStageResults("lint", [
+        {
+          ...createStageResult("lint", "passed"),
+          toolRuns: [
+            {
+              args: [],
+              cacheHit: false,
+              durationMs: 1,
+              status: "passed",
+              tool: "json-lint",
+            },
+          ],
+        },
+        createNotImplementedStageResult(
+          "lint",
+          "Install 'terraform' to enable Terraform validation.",
+        ),
+      ]).status,
+    ).toBe("not_implemented");
+
+    expect(
+      combineStageResults("sloc", [
+        {
+          ...createStageResult("sloc", "passed"),
+          toolRuns: [
+            {
+              args: [],
+              cacheHit: false,
+              durationMs: 1,
+              status: "passed",
+              tool: "lizard",
+            },
+          ],
+        },
+        createNotImplementedStageResult(
+          "sloc",
+          "Stage 'sloc' is currently implemented only for Python, JavaScript, TypeScript, C#, Go, Rust, Java, and Kotlin files in the rewrite foundation slice.",
+        ),
+      ]).status,
+    ).toBe("passed");
   });
 });
