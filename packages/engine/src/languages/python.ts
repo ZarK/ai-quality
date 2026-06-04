@@ -497,7 +497,7 @@ async function runPythonMetricsTask(
       files[0] ?? runtime.cwd,
       error,
       totalDurationMs,
-      [],
+      diagnostics,
       toolRuns,
     );
   }

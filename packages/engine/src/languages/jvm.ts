@@ -375,7 +375,7 @@ export async function runJvmMetricsTask(
       files[0] ?? runtime.cwd,
       error,
       totalDurationMs,
-      [],
+      diagnostics,
       toolRuns,
     );
   }

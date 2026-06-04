@@ -321,7 +321,7 @@ export async function runJavaScriptMetricsTask(
       files[0] ?? runtime.cwd,
       error,
       totalDurationMs,
-      [],
+      diagnostics,
       toolRuns,
     );
   }

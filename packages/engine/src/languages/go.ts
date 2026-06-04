@@ -617,7 +617,7 @@ export async function runGoMetricsTask(
       files[0] ?? runtime.cwd,
       error,
       totalDurationMs,
-      [],
+      diagnostics,
       toolRuns,
     );
   }
