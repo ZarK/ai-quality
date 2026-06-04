@@ -133,6 +133,7 @@ export function formatRunResultAsText(result: RunResult): string {
       lines.push(...group.items.map((item) => `  - ${item}`));
     }
     lines.push("Suggested next commands:");
+    lines.push("  - aiq setup");
     lines.push("  - aiq doctor");
     lines.push("  - aiq run <paths...> --only <stage-number> --verbose");
     lines.push("  - aiq config --set-stage <0-9>");
@@ -232,7 +233,7 @@ function summarizeStageProblems(stage: StageResult): ProblemSummary[] {
     return [
       {
         category: "Missing tools",
-        item: `${formatStageLabel(stage.stageId)} ${formatToolContext(stage)}${firstMessage} Fix: run aiq doctor, then install the reported tool through the project or language toolchain.`,
+        item: `${formatStageLabel(stage.stageId)} ${formatToolContext(stage)}${firstMessage} Fix: run aiq setup for required setup steps, then install the reported tool through the project or language toolchain.`,
       },
     ];
   }
@@ -250,7 +251,7 @@ function summarizeStageProblems(stage: StageResult): ProblemSummary[] {
     return [
       {
         category: "Setup issues",
-        item: `${formatStageLabel(stage.stageId)} ${firstMessage} Fix: inspect config with aiq config --print-config or run aiq doctor.`,
+        item: `${formatStageLabel(stage.stageId)} ${firstMessage} Fix: run aiq setup for prerequisite steps or inspect config with aiq config --print-config.`,
       },
     ];
   }

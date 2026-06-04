@@ -48,6 +48,15 @@ describe("ToolRunner binary lookup", () => {
     expect(outcome.stdout).toBe("");
   });
 
+  it("formats missing executable outcomes as setup guidance", () => {
+    const runner = new ToolRunner();
+
+    expect(runner.readProcessFailureMessage("lizard", "", "", undefined)).toBe(
+      "lizard was not detected. Run aiq setup for required setup steps.",
+    );
+    expect(runner.isMissingCommandOutcome("", "", undefined)).toBe(true);
+  });
+
   it.skipIf(process.platform !== "win32")(
     "normalizes unspawnable Windows shims into outcomes",
     async () => {

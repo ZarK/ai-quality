@@ -333,6 +333,10 @@ export class ToolRunner {
       return combined;
     }
 
+    if (exitCode === undefined) {
+      return `${toolName} was not detected. Run aiq setup for required setup steps.`;
+    }
+
     return `${toolName} exited with code ${exitCode ?? "unknown"}.`;
   }
 
@@ -343,11 +347,12 @@ export class ToolRunner {
   isMissingCommandOutcome(stderr: string, stdout: string, exitCode: number | undefined): boolean {
     const combined = this.joinOutputs(stderr, stdout).toLowerCase();
     return (
-      exitCode !== 0 &&
+      (exitCode === undefined || exitCode !== 0) &&
       (combined.includes("command not found") ||
         combined.includes("no such file or directory") ||
         combined.includes("not recognized as the name of a cmdlet") ||
-        combined.includes("cannot find the file specified"))
+        combined.includes("cannot find the file specified") ||
+        (exitCode === undefined && combined.trim().length === 0))
     );
   }
 
