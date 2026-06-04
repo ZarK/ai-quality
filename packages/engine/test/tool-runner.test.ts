@@ -79,13 +79,34 @@ describe("ToolRunner binary lookup", () => {
     const scriptPath = path.join(tempDir, "echo.cmd");
 
     try {
-      await writeFile(scriptPath, "@echo off\r\necho %1\r\n", "utf8");
+      await writeFile(scriptPath, "@echo off\r\necho %~1\r\n", "utf8");
 
       const runner = new ToolRunner();
       const outcome = await runner.run(scriptPath, ["script-ok"], { cwd: tempDir });
 
       expect(outcome.exitCode).toBe(0);
       expect(outcome.stdout.trim()).toBe("script-ok");
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  it("passes Windows command script metacharacters as arguments", async () => {
+    if (process.platform !== "win32") {
+      return;
+    }
+
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-tool-runner-metachar-"));
+    const scriptPath = path.join(tempDir, "echo.cmd");
+
+    try {
+      await writeFile(scriptPath, '@echo off\r\necho "%~1"\r\n', "utf8");
+
+      const runner = new ToolRunner();
+      const outcome = await runner.run(scriptPath, ["safe&echo injected"], { cwd: tempDir });
+
+      expect(outcome.exitCode).toBe(0);
+      expect(outcome.stdout.trim()).toBe('"safe&echo injected"');
     } finally {
       await rm(tempDir, { force: true, recursive: true });
     }

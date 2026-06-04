@@ -208,11 +208,11 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
     parsed.command !== "run" &&
     parsed.command !== "check" &&
     (parsed.diffOnly ||
-      parsed.dryRun ||
+      (parsed.dryRun && parsed.command !== "first-run") ||
       (parsed.verbose && parsed.command !== "doctor" && parsed.command !== "first-run"))
   ) {
     throw new Error(
-      "--diff-only and --dry-run are only supported by run/check; --verbose is supported by aiq, run/check, and doctor.",
+      "--diff-only is only supported by run/check; --dry-run and --verbose are supported by aiq, run/check, and doctor.",
     );
   }
 
@@ -475,7 +475,7 @@ function isImplicitFirstRun(args: readonly string[], cwd: string): boolean {
     return false;
   }
 
-  return first.startsWith("-");
+  return first.startsWith("-") && argsAreOnlyImplicitFirstRunOptions(args);
 }
 
 function hasExplicitManifestInput(args: readonly string[]): boolean {
@@ -527,6 +527,41 @@ function flagConsumesNextValue(flag: string): boolean {
       "--up-to",
     ].includes(flag)
   );
+}
+
+function argsAreOnlyImplicitFirstRunOptions(args: readonly string[]): boolean {
+  const allowedValueFlags = new Set([
+    "--format",
+    "--only",
+    "--out-dir",
+    "--profile",
+    "--stage",
+    "--up-to",
+  ]);
+  const allowedBooleanFlags = new Set(["--dry-run", "--verbose", "-v"]);
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === undefined) {
+      continue;
+    }
+
+    if (allowedBooleanFlags.has(argument)) {
+      continue;
+    }
+
+    if (allowedValueFlags.has(argument)) {
+      if (args[index + 1] === undefined) {
+        return false;
+      }
+      index += 1;
+      continue;
+    }
+
+    return false;
+  }
+
+  return true;
 }
 
 function isCommandName(token?: string): token is PublicCommandName {

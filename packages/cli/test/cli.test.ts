@@ -794,6 +794,43 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain('"source": "direct"');
   });
 
+  it("prints a first-run dry-run plan for the configured project gate", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-first-run-dry-run-");
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "--dry-run", "--format", "json"], {
+      cwd: project.root,
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+    expect(stdout.value).toContain('"firstRun"');
+    expect(stdout.value).toContain('"target": "."');
+    expect(stdout.value).toContain('"dryRun": true');
+    expect(stdout.value).toContain('"input"');
+  });
+
+  it("does not treat command-specific flag-first invocations as the configured project gate", async () => {
+    const project = await createTypeScriptFixtureProject("aiq-cli-flag-first-command-option-");
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "--corpus-root", "fixtures"], {
+      cwd: project.root,
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(2);
+    expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("aiq run requires explicit files or paths.");
+  });
+
   it("keeps flag-first aiq invocations with path input on explicit targets", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-flag-first-target-"));
     tempDirs.push(tempDir);
@@ -859,6 +896,23 @@ describe("CLI foundation", () => {
     expect(stderr.value).toContain("aiq check <paths...>");
   });
 
+  it("rejects aiq check project-root aliases with guidance to use the configured project gate", async () => {
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "check", path.resolve(process.cwd())], {
+      cwd: process.cwd(),
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(2);
+    expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("Use aiq for the configured project gate.");
+    expect(stderr.value).toContain("aiq check <paths...>");
+  });
+
   it("keeps explicit run focused on file and path targets", async () => {
     const stdout = new MemoryOutput();
     const stderr = new MemoryOutput();
@@ -881,6 +935,23 @@ describe("CLI foundation", () => {
     const stderr = new MemoryOutput();
 
     const exitCode = await runCli(["node", "aiq", "run", "."], {
+      cwd: process.cwd(),
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(2);
+    expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("Use aiq for the configured project gate.");
+    expect(stderr.value).toContain("aiq run <paths...>");
+  });
+
+  it("rejects aiq run project-root aliases with guidance to use the configured project gate", async () => {
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "run", "./"], {
       cwd: process.cwd(),
       stderr,
       stdin: new MemoryInput(),
@@ -3121,7 +3192,7 @@ describe("CLI foundation", () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-check-format-"));
     tempDirs.push(tempDir);
     const jsoncFile = path.join(tempDir, "config.jsonc");
-    await writeFile(jsoncFile, '{"name":"typescript-fixture","items":[1,2,3]}\n', "utf8");
+    await writeFile(jsoncFile, '{"name" :"typescript-fixture" ,"items" :[1,2,3]}\n', "utf8");
 
     const stdout = new MemoryOutput();
     const stderr = new MemoryOutput();

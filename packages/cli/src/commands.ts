@@ -501,6 +501,13 @@ export async function runFirstRunCommand(parsed: ParsedArgs, io: CliIo): Promise
   );
 
   try {
+    if (parsed.dryRun) {
+      request.writeArtifacts = false;
+      const plan = await createRunPlan(request);
+      io.stdout.write(formatDryRunOutput(parsed.format, plan));
+      return 0;
+    }
+
     const result = await runEngine(request);
     io.stdout.write(
       writeFirstRunJsonPrelude(parsed.format)

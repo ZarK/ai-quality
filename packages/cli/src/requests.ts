@@ -79,7 +79,10 @@ export async function createManifestInput(
     throw new Error(createMissingManifestMessage(parsed.command));
   }
 
-  if ((parsed.command === "run" || parsed.command === "check") && manifestFiles.includes(".")) {
+  if (
+    (parsed.command === "run" || parsed.command === "check") &&
+    manifestFiles.some((file) => resolvesToProjectRoot(file, io.cwd))
+  ) {
     throw new Error(
       `Use aiq for the configured project gate. Use aiq ${parsed.command} <paths...> only when you want explicit file or subtree targets.`,
     );
@@ -89,6 +92,12 @@ export async function createManifestInput(
     files: manifestFiles,
     source: resolveManifestSource(sources),
   };
+}
+
+function resolvesToProjectRoot(file: string, cwd: string): boolean {
+  const resolvedFile = path.resolve(cwd, file);
+  const resolvedCwd = path.resolve(cwd);
+  return resolvedFile === resolvedCwd;
 }
 
 function createMissingManifestMessage(command: ParsedArgs["command"]): string {

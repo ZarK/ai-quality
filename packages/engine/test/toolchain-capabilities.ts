@@ -1,7 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
 
 import {
   resolveDotNetCommand,
@@ -71,7 +68,6 @@ export const hasGoToolchain =
   commandAvailable("go") &&
   commandAvailable("gofmt") &&
   commandSucceeds("go", ["version"]) &&
-  commandSucceeds("go", ["test", "./..."], { cwd: path.resolve("test-projects/go") }) &&
   commandAvailable("lizard");
 
 export const hasRustToolchain =
@@ -120,44 +116,11 @@ export const hasPowerShellPesterToolchain =
       return false;
     }
 
-    if (
-      !commandSucceeds(powerShell, [
-        "-NoLogo",
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        "Import-Module Pester; if ((Get-Module Pester).Version.Major -ge 5) { exit 0 } else { exit 1 }",
-      ])
-    ) {
-      return false;
-    }
-
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "aiq-pester-probe-"));
-    const testPath = path.join(tempDir, "Probe.Tests.ps1");
-
-    try {
-      writeFileSync(
-        testPath,
-        [
-          "BeforeAll { $script:value = 1 }",
-          'Describe "AIQ Pester probe" {',
-          '  It "runs a passing test" {',
-          "    $script:value | Should -Be 1",
-          "  }",
-          "}",
-          "",
-        ].join("\n"),
-        "utf8",
-      );
-
-      return commandSucceeds(powerShell, [
-        "-NoLogo",
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        `Import-Module Pester; Invoke-Pester -Path '${testPath.replace(/'/gu, "''")}' -PassThru | Out-Null`,
-      ]);
-    } finally {
-      rmSync(tempDir, { force: true, recursive: true });
-    }
+    return commandSucceeds(powerShell, [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      "Import-Module Pester; if ((Get-Module Pester).Version.Major -ge 5 -and (Get-Command Invoke-Pester -ErrorAction SilentlyContinue)) { exit 0 } else { exit 1 }",
+    ]);
   })();

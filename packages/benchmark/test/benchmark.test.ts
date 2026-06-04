@@ -57,6 +57,7 @@ const hasFullBenchmarkToolchain =
   hasDotNet10Toolchain &&
   hasMavenToolchain &&
   hasGradleToolchain;
+const hasTaggedCiBenchmarkToolchain = hasPythonQualityToolchain && hasGoToolchain;
 
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { force: true, recursive: true })));
@@ -312,7 +313,7 @@ describe("benchmark harness", () => {
     );
   });
 
-  it.skipIf(!hasFullBenchmarkToolchain)(
+  it.skipIf(!hasTaggedCiBenchmarkToolchain)(
     "runs the tagged CI benchmark scenarios successfully",
     async () => {
       const outDir = await mkdtemp(path.join(os.tmpdir(), "aiq-benchmark-"));

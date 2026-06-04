@@ -45,6 +45,7 @@ export class ToolRunner {
         env?: NodeJS.ProcessEnv;
         maxBuffer: number;
         signal?: AbortSignal;
+        windowsVerbatimArguments?: boolean;
       } = {
         cwd: options.cwd,
         encoding: "utf8",
@@ -63,6 +64,9 @@ export class ToolRunner {
       }
 
       const invocation = this.createExecFileInvocation(command, args);
+      if (invocation.windowsVerbatimArguments) {
+        execOptions.windowsVerbatimArguments = true;
+      }
       const result = await execFileAsync(invocation.command, invocation.args, execOptions);
       const finishedAt = new Date();
 
@@ -407,15 +411,30 @@ export class ToolRunner {
   private createExecFileInvocation(
     command: string,
     args: string[],
-  ): { args: string[]; command: string } {
+  ): { args: string[]; command: string; windowsVerbatimArguments?: boolean } {
     if (!this.requiresWindowsCommandShell(command)) {
       return { args, command };
     }
 
     return {
-      args: ["/d", "/s", "/c", "call", command, ...args],
+      args: [
+        "/d",
+        "/s",
+        "/c",
+        [
+          "call",
+          this.quoteWindowsCommandArgument(command),
+          ...args.map((arg) => this.quoteWindowsCommandArgument(arg)),
+        ].join(" "),
+      ],
       command: process.env.ComSpec ?? "cmd.exe",
+      windowsVerbatimArguments: true,
     };
+  }
+
+  private quoteWindowsCommandArgument(value: string): string {
+    const escaped = value.replaceAll('"', '""').replaceAll("\r", "").replaceAll("\n", "");
+    return `"${escaped}"`;
   }
 }
 
