@@ -4979,7 +4979,7 @@ describePackageSmoke("CLI package smoke", () => {
       expect(packedFirstRun.stdout).toContain("AIQ first run");
       expect(packedFirstRun.stdout).toContain("Detected project: JavaScript/Node (package.json)");
       expect(packedFirstRun.stdout).toContain("AIQ run");
-      expect(packedFirstRun.stdout).toContain("- lint: passed");
+      expect(packedFirstRun.stdout).toContain("Stages: 1 lint passed");
       await access(path.join(packedFixture.root, ".aiq", "aiq.config.json"));
       await access(path.join(packedFixture.root, ".aiq", "progress.json"));
 
@@ -5043,7 +5043,7 @@ describePackageSmoke("CLI package smoke", () => {
       expect(packedOnlyRun.exitCode).toBe(0);
       expect(packedOnlyRun.stderr).not.toContain("ReferenceError");
       expect(packedOnlyRun.stdout).toContain("AIQ run");
-      expect(packedOnlyRun.stdout).toContain("- lint: passed");
+      expect(packedOnlyRun.stdout).toContain("Stages: 1 lint passed");
       expect(packedOnlyRun.stdout).not.toContain("AIQ check");
 
       const packedImplicitRun = await runNpmCommand(
@@ -5053,7 +5053,7 @@ describePackageSmoke("CLI package smoke", () => {
       expect(packedImplicitRun.exitCode).toBe(0);
       expect(packedImplicitRun.stderr).not.toContain("ReferenceError");
       expect(packedImplicitRun.stdout).toContain("AIQ run");
-      expect(packedImplicitRun.stdout).toContain("- lint: passed");
+      expect(packedImplicitRun.stdout).toContain("Stages: 1 lint passed");
       expect(packedImplicitRun.stdout).not.toContain("AIQ check");
 
       const packedRunJson = await runNpmCommand(
