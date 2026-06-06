@@ -1763,7 +1763,9 @@ describe("engine runners", () => {
 
     expect(result.status).toBe("passed");
     expect(result.toolRuns).toEqual([]);
-    expect(result.notes[0]).toContain("No supported files were selected for e2e.");
+    expect(result.notes[0]).toContain(
+      "No JavaScript or TypeScript project files were selected for e2e.",
+    );
   });
 
   it("fails e2e when a JavaScript package has no configured e2e runner", async () => {
