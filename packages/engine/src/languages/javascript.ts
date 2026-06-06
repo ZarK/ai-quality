@@ -17,6 +17,12 @@ import type { LizardMetricsFileMetrics } from "../parsers/lizard.js";
 import { resolveProjectConcurrencyLimit } from "../runtime-tunables.js";
 import * as binaries from "../tools/binary-resolver.js";
 import * as commands from "../tools/command-builders.js";
+import {
+  findNearestLizardConfig,
+  findNearestPlaywrightConfig,
+  playwrightConfigNames,
+  readConfigFingerprint,
+} from "../tools/native-config.js";
 import { createJavaScriptTestCommand } from "../tools/node.js";
 import {
   type JavaScriptTestExecutionMode,
@@ -66,8 +72,8 @@ type JavaScriptE2eRunner =
   | {
       args: string[];
       command: string;
-      kind: "agent-browser" | "playwright-script";
-      name: "agent-browser" | "playwright";
+      kind: "agent-browser" | "playwright-script" | "script";
+      name: "agent-browser" | "e2e" | "playwright";
     }
   | {
       installMessage: string;
@@ -102,15 +108,6 @@ type JavaScriptProjectExecution = {
   };
   toolRun: ToolRunResult;
 };
-
-const playwrightConfigNames = [
-  "playwright.config.cjs",
-  "playwright.config.cts",
-  "playwright.config.js",
-  "playwright.config.mjs",
-  "playwright.config.mts",
-  "playwright.config.ts",
-];
 
 export async function discoverJavaScriptProjects(file: string): Promise<ProjectDescriptor[]> {
   const project = await createJavaScriptPackageProject(file);
@@ -173,14 +170,36 @@ export async function runJavaScriptE2eTask(
 
   try {
     const resolvedProjects = await resolveJavaScriptE2eProjects(runtime.graph, files);
-    if (resolvedProjects.projects.length === 0) {
+    const projects = await collapseConfiguredJavaScriptE2eProjects(
+      resolvedProjects.projects,
+      runtime,
+    );
+    for (const file of resolvedProjects.unsupportedFiles) {
+      const message =
+        "No JavaScript or TypeScript package project was found for e2e. Add package.json plus a Playwright config/tests or an agent-browser/manual-audit script before using AIQ refactoring gates.";
+      diagnostics.push(runtime.createProcessFailureDiagnostic(file, "aiq-e2e", message));
+      notes.push(message);
+    }
+
+    if (projects.length === 0) {
+      if (diagnostics.length > 0) {
+        return {
+          diagnostics,
+          durationMs: totalDurationMs,
+          notes,
+          stageId: task.stageId,
+          status: "failed",
+          toolRuns,
+        };
+      }
+
       return runtime.createNoopStageResult(
         task.stageId,
         "No JavaScript or TypeScript package projects were selected for e2e.",
       );
     }
 
-    const projectResults = await runProjectBatches(resolvedProjects.projects, async (project) =>
+    const projectResults = await runProjectBatches(projects, async (project) =>
       runJavaScriptE2eProjectTask(project, runtime),
     );
 
@@ -334,7 +353,12 @@ export async function runJavaScriptMetricsTask(
     durationMs: totalDurationMs,
     notes,
     stageId: task.stageId,
-    status: diagnostics.length > 0 ? "failed" : "passed",
+    status:
+      diagnostics.length > 0
+        ? "failed"
+        : unsupportedFiles.length > 0
+          ? "not_implemented"
+          : "passed",
     toolRuns,
   };
 }
@@ -462,6 +486,132 @@ async function resolveJavaScriptE2eProjects(
   return resolvePackageProjectsFromFiles(files, isJavaScriptTestTaskFile);
 }
 
+async function collapseConfiguredJavaScriptE2eProjects(
+  projects: readonly JavaScriptE2eProject[],
+  runtime: JavaScriptRunnerRuntime,
+): Promise<JavaScriptE2eProject[]> {
+  const collapsedProjects = new Map<string, JavaScriptE2eProject>();
+
+  for (const project of projects) {
+    const effectiveProject =
+      (await findConfiguredJavaScriptE2eProject(project, runtime)) ?? project;
+    const existingProject = collapsedProjects.get(effectiveProject.packageJsonPath);
+    if (existingProject === undefined) {
+      collapsedProjects.set(effectiveProject.packageJsonPath, {
+        ...effectiveProject,
+        files: [...new Set(project.files)].sort((left, right) => left.localeCompare(right)),
+      });
+      continue;
+    }
+
+    existingProject.files = [...new Set([...existingProject.files, ...project.files])].sort(
+      (left, right) => left.localeCompare(right),
+    );
+  }
+
+  return [...collapsedProjects.values()].sort((left, right) =>
+    left.projectRoot.localeCompare(right.projectRoot),
+  );
+}
+
+async function findConfiguredJavaScriptE2eProject(
+  project: JavaScriptE2eProject,
+  runtime: JavaScriptRunnerRuntime,
+): Promise<JavaScriptE2eProject | undefined> {
+  let projectRoot = project.projectRoot;
+  let packageJsonPath = project.packageJsonPath;
+
+  while (true) {
+    const candidate = {
+      files: project.files,
+      packageJsonPath,
+      projectRoot,
+    };
+    if (
+      (await resolveJavaScriptE2eRunner(candidate, runtime)) !== undefined &&
+      (candidate.packageJsonPath === project.packageJsonPath ||
+        (await packageJsonCoversWorkspaceProject(candidate.packageJsonPath, project.projectRoot)))
+    ) {
+      return candidate;
+    }
+
+    let foundAncestorPackage = false;
+    let nextRoot = path.dirname(projectRoot);
+    while (nextRoot !== projectRoot) {
+      const parentPackageJsonPath = path.join(nextRoot, "package.json");
+      if (await fileExists(parentPackageJsonPath)) {
+        projectRoot = nextRoot;
+        packageJsonPath = parentPackageJsonPath;
+        foundAncestorPackage = true;
+        break;
+      }
+
+      projectRoot = nextRoot;
+      nextRoot = path.dirname(nextRoot);
+    }
+
+    if (!foundAncestorPackage) {
+      return undefined;
+    }
+  }
+}
+
+async function packageJsonCoversWorkspaceProject(
+  packageJsonPath: string,
+  projectRoot: string,
+): Promise<boolean> {
+  const packageJson = await readPackageJson(packageJsonPath);
+  const workspacePatterns = readWorkspacePatterns(packageJson);
+  if (workspacePatterns.length === 0) {
+    return false;
+  }
+
+  const root = path.dirname(packageJsonPath);
+  const relativeProjectRoot = path.relative(root, projectRoot).replace(/\\/gu, "/");
+  if (relativeProjectRoot.length === 0 || relativeProjectRoot.startsWith("../")) {
+    return false;
+  }
+
+  return workspacePatterns.some((pattern) =>
+    workspacePatternMatchesProject(pattern, relativeProjectRoot),
+  );
+}
+
+function readWorkspacePatterns(packageJson: Record<string, unknown>): string[] {
+  const workspaces = packageJson.workspaces;
+  if (Array.isArray(workspaces)) {
+    return workspaces.filter((entry): entry is string => typeof entry === "string");
+  }
+
+  if (typeof workspaces === "object" && workspaces !== null) {
+    const packages = (workspaces as Record<string, unknown>).packages;
+    return Array.isArray(packages)
+      ? packages.filter((entry): entry is string => typeof entry === "string")
+      : [];
+  }
+
+  return [];
+}
+
+function workspacePatternMatchesProject(pattern: string, relativeProjectRoot: string): boolean {
+  const normalizedPattern = pattern.replace(/\\/gu, "/").replace(/\/+$/u, "");
+  if (normalizedPattern.endsWith("/**")) {
+    const prefix = normalizedPattern.slice(0, -"/**".length);
+    return relativeProjectRoot === prefix || relativeProjectRoot.startsWith(`${prefix}/`);
+  }
+
+  if (normalizedPattern.endsWith("/*")) {
+    const prefix = normalizedPattern.slice(0, -"/*".length);
+    if (!relativeProjectRoot.startsWith(`${prefix}/`)) {
+      return false;
+    }
+
+    return !relativeProjectRoot.slice(prefix.length + 1).includes("/");
+  }
+
+  return relativeProjectRoot === normalizedPattern;
+}
+
 async function resolvePackageProjectsFromFiles(
   files: readonly string[],
   isSupportedFile: (file: string) => boolean,
@@ -579,7 +729,12 @@ async function runJavaScriptTestStage(
     await rm(stageTempDir, { force: true, recursive: true }).catch(() => undefined);
   }
 
-  const status = diagnostics.length > 0 ? "failed" : "passed";
+  const status =
+    diagnostics.length > 0
+      ? "failed"
+      : unsupportedProjectRoots.length > 0
+        ? "not_implemented"
+        : "passed";
 
   if (unsupportedProjectRoots.length > 0) {
     notes.push(runtime.readUnsupportedRunnerNote(task.stageId, unsupportedProjectRoots));
@@ -606,10 +761,13 @@ async function runJavaScriptE2eProjectTask(
 }> {
   const runner = await resolveJavaScriptE2eRunner(project, runtime);
   if (runner === undefined) {
+    const note = `No e2e runner is configured for ${project.projectRoot}. Add Playwright config/tests or an agent-browser/manual-audit script, then run aiq setup if project dependencies are missing.`;
     return {
-      diagnostics: [],
+      diagnostics: [
+        runtime.createProcessFailureDiagnostic(project.packageJsonPath, "aiq-e2e", note),
+      ],
       durationMs: 0,
-      note: `No e2e runner is configured for ${project.projectRoot}. Add Playwright config/tests or an agent-browser/manual-audit script, then run aiq setup if project dependencies are missing.`,
+      note,
     };
   }
 
@@ -678,7 +836,12 @@ async function resolveJavaScriptE2eRunner(
       args: ["run", script.name, "--", ...script.extraArgs],
       command: binaries.resolveNpmCommand(),
       kind: script.kind,
-      name: script.kind === "agent-browser" ? "agent-browser" : "playwright",
+      name:
+        script.kind === "agent-browser"
+          ? "agent-browser"
+          : script.kind === "script"
+            ? "e2e"
+            : "playwright",
     };
   }
 
@@ -696,8 +859,9 @@ async function resolveJavaScriptE2eRunner(
     };
   }
 
+  const configPath = await findNearestPlaywrightConfig(project.packageJsonPath);
   return {
-    args: commands.createPlaywrightTestArgs(),
+    args: commands.createPlaywrightTestArgs(configPath === undefined ? {} : { configPath }),
     command: playwrightBinary,
     kind: "playwright",
     name: "playwright",
@@ -706,7 +870,9 @@ async function resolveJavaScriptE2eRunner(
 
 function selectE2eScript(
   packageJson: Record<string, unknown>,
-): { extraArgs: string[]; kind: "agent-browser" | "playwright-script"; name: string } | undefined {
+):
+  | { extraArgs: string[]; kind: "agent-browser" | "playwright-script" | "script"; name: string }
+  | undefined {
   const scripts = readPackageScripts(packageJson);
   const preferredNames = ["aiq:e2e", "test:e2e", "e2e", "audit:ui", "aiq:audit-ui"];
   for (const name of preferredNames) {
@@ -721,6 +887,10 @@ function selectE2eScript(
 
     if (script.includes("playwright")) {
       return { extraArgs: ["--reporter=json"], kind: "playwright-script", name };
+    }
+
+    if (name === "aiq:e2e" || name === "test:e2e" || name === "e2e") {
+      return { extraArgs: [], kind: "script", name };
     }
   }
 
@@ -766,6 +936,20 @@ async function resolveLocalPlaywrightBinary(projectRoot: string): Promise<string
   const binName = process.platform === "win32" ? "playwright.cmd" : "playwright";
   const binaryPath = path.join(projectRoot, "node_modules", ".bin", binName);
   return (await fileExists(binaryPath)) ? binaryPath : undefined;
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    const stats = await stat(filePath);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
+
+function isPlaywrightSpecFile(filePath: string): boolean {
+  const name = path.basename(filePath).toLowerCase();
+  return /\.(?:e2e|spec)\.[cm]?[jt]sx?$/u.test(name);
 }
 
 async function runJavaScriptProjectTask(
@@ -985,16 +1169,32 @@ async function createJavaScriptMetricsCacheKey(
   project: { files: string[]; packageJsonPath: string },
   manifestKey = createJavaScriptMetricsManifestKey(project),
 ): Promise<string> {
-  const fileEntries = await Promise.all(
-    [...project.files]
+  const [configFingerprint, fileEntries] = await Promise.all([
+    readJavaScriptMetricsConfigFingerprint(project.files),
+    Promise.all(
+      [...project.files]
+        .sort((left, right) => left.localeCompare(right))
+        .map(async (file) => {
+          const fileStats = await stat(file);
+          return `${file}@${fileStats.size}:${fileStats.mtimeMs}`;
+        }),
+    ),
+  ]);
+
+  return `${manifestKey}:${configFingerprint}:${fileEntries.join("|")}`;
+}
+
+async function readJavaScriptMetricsConfigFingerprint(files: readonly string[]): Promise<string> {
+  const fingerprints = await Promise.all(
+    [...files]
       .sort((left, right) => left.localeCompare(right))
       .map(async (file) => {
-        const fileStats = await stat(file);
-        return `${file}@${fileStats.size}:${fileStats.mtimeMs}`;
+        const configPath = await findNearestLizardConfig(file);
+        return readConfigFingerprint(configPath);
       }),
   );
 
-  return `${manifestKey}:${fileEntries.join("|")}`;
+  return [...new Set(fingerprints)].join("|");
 }
 
 async function runJavaScriptMetricsProjectTask(
@@ -1060,20 +1260,6 @@ function isJavaScriptTestTaskFile(file: string): boolean {
     javaScriptMetricsSourceExtensions.has(path.extname(file).toLowerCase()) ||
     path.basename(file).toLowerCase() === "package.json"
   );
-}
-
-function isPlaywrightSpecFile(file: string): boolean {
-  const name = path.basename(file).toLowerCase();
-  return /\.(?:e2e|spec)\.[cm]?[jt]sx?$/u.test(name);
-}
-
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    const stats = await stat(filePath);
-    return stats.isFile();
-  } catch {
-    return false;
-  }
 }
 
 function getProjectsForKind(
@@ -1285,6 +1471,10 @@ function readE2eNote(
     return `Agent-browser e2e audit ${status}.`;
   }
 
+  if (runner.kind === "script") {
+    return `E2E script ${status}.`;
+  }
+
   const summary = readPlaywrightSummary(stdout);
   if (summary === undefined) {
     return `Playwright e2e ${status}.`;
@@ -1399,7 +1589,7 @@ function readPlaywrightTestOutcome(test: unknown): "failed" | "passed" | undefin
 
 function readPackageScripts(packageJson: Record<string, unknown>): Map<string, string> {
   const scripts = packageJson.scripts;
-  if (typeof scripts !== "object" || scripts === null || Array.isArray(scripts)) {
+  if (typeof scripts !== "object" || scripts === null) {
     return new Map();
   }
 

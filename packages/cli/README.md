@@ -28,6 +28,8 @@ npx @tjalve/aiq evidence --format json
 Use `aiq` for the full configured project gate. Use `run <paths...>` for explicit files and subtrees. Use `plan <paths...>` to see what would run for explicit targets. `--dry-run` prints the resolved run plan without executing tools or writing artifacts.
 `evidence` reads the latest AIQ report and emits structured JSON that orchestration tools can store as gate evidence or parse as trusted quality state.
 
+Default text output is compact: status, selected stage results, diagnostics summary, and the next action. Use `--verbose` for run metadata, artifact paths, stage notes, and command/tool details. Use `--format json` for the complete machine-readable report.
+
 ## Package Surface
 
 `@tjalve/aiq` is the canonical package for standalone users and adapters. It ships the `aiq` and `quality` binaries from the top-level export, and `@tjalve/aiq/api` exposes the model, config, engine, reporter, and benchmark APIs used by the hook, MCP, LSP, GitHub Action, and OpenCode packages.
@@ -85,6 +87,8 @@ npx @tjalve/aiq doctor --verbose
 
 `doctor` checks config/progress state, detects project technologies, reports the stages that would run, and separates npm-bundled tools from external host tools. It exits non-zero when selected stages need missing required setup. Use `--verbose` to show exact binary paths and versions.
 
+AIQ uses repository-native tool configs by default. Existing Biome config, `tsconfig.json`, Vitest/Jest config or package test scripts, Playwright config or e2e/audit scripts, Ruff/Radon-compatible Python config, and metrics config files remain authoritative for their tools unless AIQ stage/tool selection explicitly narrows what runs.
+
 ## Common Remediation
 
 ```bash
@@ -95,3 +99,5 @@ npx @tjalve/aiq config --set-stage <0-9>
 ```
 
 If a tool is missing, run `setup` for the exact agent actions, then install the missing prerequisite through the normal toolchain for that language or project.
+
+Metric stages enforce SLOC, complexity, maintainability, and readability defaults for source and test code. Before broad refactoring, make stage `0` e2e pass. Keep remediation small and behavior-preserving, preserve public APIs and repository conventions, split oversized files/functions into cohesive units, reduce branching in reported functions, and use direct purpose-revealing names: active verbs for functions, direct nouns for values, plural nouns for collections, short scoped file/module names, and no vague helper/manager/processor names unless local convention requires them.

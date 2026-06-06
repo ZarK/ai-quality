@@ -6,6 +6,7 @@ import * as parsers from "../parsers/index.js";
 import type { PythonMetricsFileMetrics } from "../parsers/python.js";
 import * as binaries from "../tools/binary-resolver.js";
 import * as commands from "../tools/command-builders.js";
+import { findNearestPythonQualityConfig, readConfigFingerprint } from "../tools/native-config.js";
 import { pathExists } from "../utils/path-utils.js";
 import type { PythonRunnerRuntime } from "./contracts.js";
 
@@ -302,16 +303,32 @@ async function createPythonMetricsCacheKey(
   project: PythonProject,
   manifestKey = createPythonMetricsManifestKey(project),
 ): Promise<string> {
-  const fileEntries = await Promise.all(
-    [...project.files]
+  const [configFingerprint, fileEntries] = await Promise.all([
+    readPythonMetricsConfigFingerprint(project.files),
+    Promise.all(
+      [...project.files]
+        .sort((left, right) => left.localeCompare(right))
+        .map(async (file) => {
+          const fileStats = await stat(file);
+          return `${file}@${fileStats.size}:${fileStats.mtimeMs}`;
+        }),
+    ),
+  ]);
+
+  return `${manifestKey}:${configFingerprint}:${fileEntries.join("|")}`;
+}
+
+async function readPythonMetricsConfigFingerprint(files: readonly string[]): Promise<string> {
+  const fingerprints = await Promise.all(
+    [...files]
       .sort((left, right) => left.localeCompare(right))
       .map(async (file) => {
-        const fileStats = await stat(file);
-        return `${file}@${fileStats.size}:${fileStats.mtimeMs}`;
+        const configPath = await findNearestPythonQualityConfig(file);
+        return readConfigFingerprint(configPath);
       }),
   );
 
-  return `${manifestKey}:${fileEntries.join("|")}`;
+  return [...new Set(fingerprints)].join("|");
 }
 
 async function runPythonMetricsProjectTask(
@@ -324,26 +341,32 @@ async function runPythonMetricsProjectTask(
     "from radon.metrics import h_visit, mi_rank, mi_visit",
     "from radon.raw import analyze",
     "files = [str(pathlib.Path(value).resolve()) for value in sys.argv[1:]]",
-    "def readability_index(source, raw, blocks):",
-    "    h_tot = h_visit(source).total",
-    "    volume = h_tot.volume",
-    "    difficulty = h_tot.difficulty",
-    "    complexities = [block.complexity for block in blocks]",
-    "    avg_complexity = sum(complexities) / len(complexities) if complexities else 0",
-    "    sloc = raw.sloc",
-    "    comment_ratio = raw.comments / sloc if sloc else 0",
-    "    long_names = len([name for name in re.findall(r'\\b[_a-zA-Z]\\w*\\b', source) if len(name) > 20])",
-    "    vague_names = len(re.findall(r'\\b(data|info|item|obj|temp|tmp|val|var|thing|stuff|helper|util|manager|handler|service|processor|controller)\\b', source, re.IGNORECASE))",
-    "    redundant_prefixes = len(re.findall(r'\\b(current_|new_|old_|temp_|tmp_|get_|set_|do_|make_|create_|build_)\\w+\\b', source))",
-    "    vocab_density = (h_tot.h1 + h_tot.h2) / max(sloc, 1)",
-    "    return 100 - 1.5 * math.log10(max(volume, 1)) - 1.2 * difficulty - 0.6 * avg_complexity - 0.05 * sloc - 30 * max(comment_ratio - 0.25, 0) - 2 * long_names - 3 * vague_names - 2 * redundant_prefixes - 10 * max(vocab_density - 2, 0)",
     "result = {}",
     "for file_path in files:",
     "    source = pathlib.Path(file_path).read_text(encoding='utf8')",
     "    raw = analyze(source)",
     "    blocks = cc_visit(source)",
     "    mi_score = float(mi_visit(source, True))",
-    "    readability_score = readability_index(source, raw, blocks)",
+    "    halstead = h_visit(source).total",
+    "    complexities = [block.complexity for block in blocks]",
+    "    avg_cc = sum(complexities) / len(complexities) if complexities else 0",
+    "    comment_ratio = raw.comments / raw.sloc if raw.sloc else 0",
+    "    long_names = len([name for name in re.findall(r'\\b[_a-zA-Z]\\w*\\b', source) if len(name) > 20])",
+    "    vague_names = len(re.findall(r'\\b(data|info|item|obj|temp|tmp|val|var|thing|stuff|helper|util|manager|handler|service|processor|controller)\\b', source, re.IGNORECASE))",
+    "    redundant_prefixes = len(re.findall(r'\\b(current_|new_|old_|temp_|tmp_|get_|set_|do_|make_|create_|build_)\\w+\\b', source))",
+    "    vocabulary_density = (halstead.h1 + halstead.h2) / max(raw.sloc, 1)",
+    "    readability_score = (",
+    "        100",
+    "        - 1.5 * math.log10(max(halstead.volume, 1))",
+    "        - 1.2 * halstead.difficulty",
+    "        - 0.6 * avg_cc",
+    "        - 0.05 * raw.sloc",
+    "        - 30 * max(comment_ratio - 0.25, 0)",
+    "        - 2 * long_names",
+    "        - 3 * vague_names",
+    "        - 2 * redundant_prefixes",
+    "        - 10 * max(vocabulary_density - 2, 0)",
+    "    )",
     "    result[file_path] = {",
     "        'raw': {",
     "            'blank': raw.blank,",

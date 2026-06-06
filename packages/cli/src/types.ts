@@ -161,12 +161,21 @@ Stage selection:
 
 Operational checks:
   --dry-run prints the run plan without executing tools or writing artifacts.
-  --verbose adds command/tool details to text run output.
+  Default text output is compact: status, selected stage results, diagnostics summary, and the next action.
+  --verbose adds run metadata, artifact paths, stage notes, and command/tool details to text output.
+  --format json keeps the complete machine-readable report for automation.
   aiq doctor validates config/progress state, uses the same stage selection as run, and reports detected tech plus required, installed, optional, bundled, and project-managed tools.
   aiq setup gives agent-facing setup steps for the same selected stages and detected technologies. AIQ reports setup needs; it does not install tools or mutate the host environment.
+  AIQ uses repository-native tool configs by default, including Biome, tsconfig, Vitest/Jest, Playwright, Ruff/Radon-compatible Python config, and metrics config files when those tools expose them.
   aiq evidence emits structured AIQ quality evidence that AIE can record and AIU can parse as trusted quality state.
   aiq status shows the current stage, default cumulative run range, latest artifact paths, last run status, and next suggested command.
   hook install, ci setup, and ignore write provide adapter guidance; use aiq setup for prerequisite steps, aiq doctor for diagnostics, and aiq config for canonical project state.
+
+Metric remediation:
+  Stages 5-7 enforce SLOC, complexity, maintainability, and readability defaults for source and test code.
+  Do not start broad refactors until stage 0 e2e passes.
+  Keep refactors small and behavior-preserving; preserve public APIs and repository conventions.
+  Use direct purpose-revealing names: active verbs for functions, direct nouns for values, plural nouns for collections, short scoped file/module names, and no vague helper/manager/processor names unless local convention requires them.
 
 Package surface:
   @tjalve/aiq exports the CLI; @tjalve/aiq/api exports the model, config, engine, reporter, and benchmark APIs used by adapters.

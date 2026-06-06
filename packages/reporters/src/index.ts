@@ -97,7 +97,56 @@ export function formatPlanAsText(plan: RunPlan): string {
   return `${lines.join("\n")}\n`;
 }
 
-export function formatRunResultAsText(result: RunResult): string {
+export interface RunResultTextFormatOptions {
+  detail?: boolean;
+}
+
+export function formatRunResultAsText(
+  result: RunResult,
+  options: RunResultTextFormatOptions = {},
+): string {
+  return options.detail
+    ? formatDetailedRunResultAsText(result)
+    : formatCompactRunResultAsText(result);
+}
+
+function formatCompactRunResultAsText(result: RunResult): string {
+  const lines = [
+    `AIQ ${result.mode}`,
+    `Status: ${result.summary.status}`,
+    `Stages: ${formatCompactStageList(result.stages)}`,
+    `Files: ${result.summary.fileCount}; diagnostics: ${result.summary.diagnosticCount}`,
+  ];
+
+  const problemGroups = collectProblemGroups(result);
+  if (problemGroups.length > 0) {
+    lines.push("");
+    lines.push("Problems:");
+    for (const group of problemGroups) {
+      for (const item of group.items) {
+        lines.push(`- ${group.heading}: ${formatCompactProblemItem(group.heading, item)}`);
+      }
+    }
+  }
+
+  lines.push(`Next: ${formatCompactNextAction(result, problemGroups)}`);
+
+  return `${lines.join("\n")}\n`;
+}
+
+function formatCompactProblemItem(heading: ProblemCategory, item: string): string {
+  if (
+    heading === missingToolsCategory ||
+    heading === setupIssuesCategory ||
+    heading === "Unsupported projects"
+  ) {
+    return item.replace(/\s+Fix: .+$/u, "");
+  }
+
+  return item;
+}
+
+function formatDetailedRunResultAsText(result: RunResult): string {
   const lines = [
     `AIQ ${result.mode}`,
     `Run: ${result.runId}`,
@@ -146,6 +195,38 @@ export function formatRunResultAsText(result: RunResult): string {
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+function formatCompactStageList(stages: readonly StageResult[]): string {
+  if (stages.length === 0) {
+    return "none";
+  }
+
+  return stages
+    .map((stage) => `${stageNumbers[stage.stageId]} ${stage.stageId} ${stage.status}`)
+    .join("; ");
+}
+
+function formatCompactNextAction(
+  result: RunResult,
+  problemGroups: readonly ProblemGroup[],
+): string {
+  if (result.summary.status === "passed") {
+    return "no action required.";
+  }
+
+  if (
+    problemGroups.some(
+      (group) => group.heading === missingToolsCategory || group.heading === setupIssuesCategory,
+    )
+  ) {
+    return "aiq setup";
+  }
+
+  const failedStage = result.stages.find((stage) => stage.status !== "passed");
+  const stageNumber =
+    failedStage === undefined ? "<stage-number>" : String(stageNumbers[failedStage.stageId]);
+  return `aiq run <paths...> --only ${stageNumber} --verbose`;
 }
 
 const missingToolsCategory = "Missing tools";
@@ -265,6 +346,15 @@ function summarizeStageProblems(stage: StageResult): ProblemSummary[] {
     ];
   }
 
+  if (isMetricRemediationStage(stage)) {
+    return [
+      {
+        category: "Quality failures",
+        item: formatMetricRemediationSummary(stage, firstMessage),
+      },
+    ];
+  }
+
   if (stage.diagnostics.length > 0) {
     return [
       {
@@ -300,6 +390,40 @@ function formatDiagnosticSources(diagnostics: readonly Diagnostic[]): string {
   return [...new Set(diagnostics.map((diagnostic) => diagnostic.source))]
     .sort((left, right) => left.localeCompare(right))
     .join(", ");
+}
+
+function isMetricRemediationStage(stage: StageResult): boolean {
+  if (
+    stage.stageId !== "sloc" &&
+    stage.stageId !== "complexity" &&
+    stage.stageId !== "maintainability"
+  ) {
+    return false;
+  }
+
+  return stage.diagnostics.some((diagnostic) => diagnostic.code?.startsWith("metrics/"));
+}
+
+function formatMetricRemediationSummary(stage: StageResult, firstMessage: string): string {
+  return `${formatStageLabel(stage.stageId)} ${stage.diagnostics.length} metric diagnostic${stage.diagnostics.length === 1 ? "" : "s"} from ${formatDiagnosticSources(stage.diagnostics)}. First: ${firstMessage} Fix: ${formatMetricRemediationGuidance(stage.stageId)}`;
+}
+
+function formatMetricRemediationGuidance(stageId: StageId): string {
+  const common =
+    "Do not start broad refactors until stage 0 e2e passes; preserve public APIs and repository conventions.";
+  const naming =
+    "Use direct purpose-revealing names: active verbs for functions, direct nouns for values, plural nouns for collections, short scoped file/module names, and no vague helper/manager/processor names unless local convention requires them.";
+
+  switch (stageId) {
+    case "sloc":
+      return `${common} Split oversized source and test files into cohesive modules or focused specs, keeping each slice behavior-preserving.`;
+    case "complexity":
+      return `${common} Reduce branching in the reported function, extract named decisions, prefer clear guard clauses or tables where they fit, and keep behavior covered by existing tests. ${naming}`;
+    case "maintainability":
+      return `${common} Shorten large functions, reduce parameter lists, separate unrelated decisions, and improve readability without changing behavior. ${naming}`;
+    default:
+      return `${common} Make small behavior-preserving refactors and rerun the failing metric stage. ${naming}`;
+  }
 }
 
 function readToolFromMessage(message: string): string | undefined {

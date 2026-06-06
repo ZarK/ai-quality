@@ -8,6 +8,7 @@ import {
   createFileMetricDiagnostics,
   createLizardMetricsDiagnostics,
   createPythonMetricsDiagnostics,
+  metricsDiagnosticCodes,
   readMetricsThresholds,
 } from "../src/metrics-thresholds.js";
 import { parseDotNetTrxReport } from "../src/parsers/dotnet.js";
@@ -18,8 +19,10 @@ import { capitalize, resolveDiagnosticFile } from "../src/parsers/utils.js";
 import { parseXmlAttributes } from "../src/parsers/xml.js";
 import { createRegistry } from "../src/registries.js";
 import {
+  createBiomeLintArgs,
   createDirectJavaScriptTestArgs,
   createJavaScriptTestArgs,
+  createPlaywrightTestArgs,
   createPythonTestArgs,
   createTerraformInitArgs,
   createTyCheckArgs,
@@ -80,6 +83,18 @@ describe("extracted helper regressions", () => {
       "-backend=false",
       "-input=false",
       "-no-color",
+    ]);
+  });
+
+  it("builds native config args for tools that accept explicit config paths", () => {
+    expect(
+      createBiomeLintArgs({ configPath: "/repo/biome.json", files: ["src/index.ts"] }),
+    ).toEqual(["lint", "--config-path=/repo/biome.json", "--reporter=json", "src/index.ts"]);
+    expect(createPlaywrightTestArgs({ configPath: "/repo/playwright.config.ts" })).toEqual([
+      "test",
+      "--config",
+      "/repo/playwright.config.ts",
+      "--reporter=json",
     ]);
   });
 
@@ -275,20 +290,20 @@ describe("extracted helper regressions", () => {
     );
   });
 
-  it("preserves the previous lizard maintainability thresholds", async () => {
+  it("ranks lizard maintainability from parsed function metrics", async () => {
     const project = await createTempSourceFile(["a", "b", "c", "d"].join("\n"));
 
-    const metrics = await parseLizardMetrics("0,7,0,0,0,0,fixture.ts", project.root, [
+    const metrics = await parseLizardMetrics("0,7,0,0,0,0,fixture.ts,work,1,1,2", project.root, [
       project.file,
     ]);
 
-    expect(metrics[project.file]?.maintainability.rank).toBe("B");
+    expect(metrics[project.file]?.maintainability.rank).toBe("C");
   });
 
-  it("preserves the previous lizard complexity thresholds", async () => {
+  it("ranks lizard complexity from parsed function metrics", async () => {
     const project = await createTempSourceFile("single\n");
 
-    const metrics = await parseLizardMetrics("0,31,0,0,0,0,fixture.ts", project.root, [
+    const metrics = await parseLizardMetrics("0,31,0,0,0,0,fixture.ts,work,1,1,2", project.root, [
       project.file,
     ]);
 
@@ -328,6 +343,7 @@ describe("extracted helper regressions", () => {
 
     expect(createLizardMetricsDiagnostics(metrics, "sloc", "lizard")).toEqual([
       expect.objectContaining({
+        code: metricsDiagnosticCodes.sloc,
         file: project.file,
         message: "SLOC 350 is greater than or equal to 350.",
         source: "lizard",
@@ -335,6 +351,7 @@ describe("extracted helper regressions", () => {
     ]);
     expect(createLizardMetricsDiagnostics(metrics, "complexity", "lizard")).toEqual([
       expect.objectContaining({
+        code: metricsDiagnosticCodes.lizardComplexity,
         file: project.file,
         message: "work complexity 13 is greater than 12.",
         source: "lizard",
@@ -342,21 +359,24 @@ describe("extracted helper regressions", () => {
     ]);
     expect(createLizardMetricsDiagnostics(metrics, "maintainability", "lizard")).toEqual([
       expect.objectContaining({
+        code: metricsDiagnosticCodes.lizardMaintainabilityComplexity,
         file: project.file,
         message: "work maintainability complexity 13 is greater than 10.",
       }),
       expect.objectContaining({
+        code: metricsDiagnosticCodes.lizardMaintainabilityFunctionNloc,
         file: project.file,
         message: "work function NLOC 350 is greater than 200.",
       }),
       expect.objectContaining({
+        code: metricsDiagnosticCodes.lizardMaintainabilityParameterCount,
         file: project.file,
         message: "work parameter count 7 is greater than 6.",
       }),
     ]);
   });
 
-  it("honors legacy lizard threshold environment overrides", () => {
+  it("honors metrics threshold environment overrides", () => {
     expect(
       readMetricsThresholds({
         AIQ_SLOC_LIMIT: "500",
@@ -398,13 +418,13 @@ describe("extracted helper regressions", () => {
           },
         ],
         mi: {
-          rank: "D",
+          rank: "C",
           score: 39,
         },
         raw: {
           blank: 0,
           comments: 0,
-          lloc: 350,
+          lloc: 0,
           loc: 350,
           multi: 0,
           singleComments: 0,
@@ -416,19 +436,28 @@ describe("extracted helper regressions", () => {
       },
     };
 
-    expect(createPythonMetricsDiagnostics(metrics, "sloc", "radon")).toHaveLength(1);
+    expect(createPythonMetricsDiagnostics(metrics, "sloc", "radon")).toEqual([
+      expect.objectContaining({
+        code: metricsDiagnosticCodes.sloc,
+        file,
+        message: "SLOC 350 is greater than or equal to 350.",
+      }),
+    ]);
     expect(createPythonMetricsDiagnostics(metrics, "complexity", "radon")).toEqual([
       expect.objectContaining({
+        code: metricsDiagnosticCodes.pythonComplexity,
         file,
         message: "work complexity rank C is not allowed; only A/B complexity ranks pass.",
       }),
     ]);
     expect(createPythonMetricsDiagnostics(metrics, "maintainability", "radon")).toEqual([
       expect.objectContaining({
+        code: metricsDiagnosticCodes.pythonMaintainability,
         file,
         message: "Maintainability index 39.0 is less than 40.",
       }),
       expect.objectContaining({
+        code: metricsDiagnosticCodes.pythonReadability,
         file,
         message: "Readability index 84.0 is less than 85.",
       }),
@@ -447,6 +476,7 @@ describe("extracted helper regressions", () => {
 
     expect(createFileMetricDiagnostics(metrics, "maintainability", "aiq-csharp-metrics")).toEqual([
       expect.objectContaining({
+        code: metricsDiagnosticCodes.lizardMaintainabilityComplexity,
         file,
         message: "Maintainability complexity 11 is greater than 10.",
       }),
