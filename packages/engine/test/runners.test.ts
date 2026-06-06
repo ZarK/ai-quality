@@ -559,6 +559,37 @@ describe("engine runners", () => {
     expect(result.toolRuns[0]?.args).toContain(`--config-path=${path.join(tempDir, "biome.json")}`);
   });
 
+  it("does not pass a Biome config when selected files do not share one", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-biome-partial-native-config-"));
+    tempDirs.push(tempDir);
+
+    const configuredDir = path.join(tempDir, "configured");
+    await mkdir(configuredDir, { recursive: true });
+    const configuredFile = path.join(configuredDir, "index.ts");
+    const defaultFile = path.join(tempDir, "index.ts");
+    await writeFile(
+      path.join(configuredDir, "biome.json"),
+      `${JSON.stringify({ linter: { rules: { style: { noVar: "off" } } } }, null, 2)}\n`,
+      "utf8",
+    );
+    await writeFile(configuredFile, "export const configured = 1;\n", "utf8");
+    await writeFile(defaultFile, "export const fallback = 1;\n", "utf8");
+
+    const result = await runPlannedTask(
+      {
+        fileCount: 2,
+        files: [configuredFile, defaultFile],
+        id: "test:1:lint-biome-partial-native-config",
+        stageId: "lint",
+      },
+      process.cwd(),
+    );
+
+    expect(result.status).toBe("passed");
+    expect(result.diagnostics).toEqual([]);
+    expect(result.toolRuns[0]?.args.some((arg) => arg.startsWith("--config-path="))).toBe(false);
+  });
+
   it("runs TypeScript typecheck and parses real compiler diagnostics", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-tsc-runner-"));
     tempDirs.push(tempDir);

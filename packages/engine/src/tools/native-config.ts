@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 
-import { findNearestAnyConfigPath, pathExists } from "../utils/path-utils.js";
+import { findNearestAnyConfigPath } from "../utils/path-utils.js";
 
 export const biomeConfigNames = ["biome.json", "biome.jsonc"] as const;
 export const lizardConfigNames = [".lizard", ".lizardrc", "lizard.conf"] as const;
@@ -41,10 +41,14 @@ export async function findNearestPythonQualityConfig(
 }
 
 export async function readConfigFingerprint(configPath: string | undefined): Promise<string> {
-  if (configPath === undefined || !(await pathExists(configPath))) {
+  if (configPath === undefined) {
     return "native-config:none";
   }
 
-  const stats = await stat(configPath);
-  return `native-config:${path.resolve(configPath)}@${stats.size}:${stats.mtimeMs}`;
+  try {
+    const stats = await stat(configPath);
+    return `native-config:${path.resolve(configPath)}@${stats.size}:${stats.mtimeMs}`;
+  } catch {
+    return "native-config:none";
+  }
 }

@@ -3295,9 +3295,10 @@ async function findSharedNativeConfig(
 
   for (const file of files) {
     const configPath = await findConfig(file);
-    if (configPath !== undefined) {
-      configPaths.add(configPath);
+    if (configPath === undefined) {
+      return undefined;
     }
+    configPaths.add(configPath);
   }
 
   return configPaths.size === 1 ? [...configPaths][0] : undefined;
