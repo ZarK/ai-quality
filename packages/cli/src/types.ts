@@ -5,6 +5,7 @@ import {
   aiqStageLadderIds,
 } from "@tjalve/aiq/config";
 import type { StageId, ToolRunResult } from "@tjalve/aiq/model";
+import packageJson from "../package.json" with { type: "json" };
 
 export type CommandName =
   | "bench"
@@ -22,6 +23,7 @@ export type CommandName =
   | "serve"
   | "setup"
   | "status"
+  | "version"
   | "watch";
 export type OutputFormat = "json" | "text";
 export type SetupGuidanceCommand = "ci" | "hook" | "ignore";
@@ -73,6 +75,8 @@ export interface ParsedArgs {
 }
 
 export const cliStageShortcutIds = aiqStageLadderIds;
+export const cliPackageName = packageJson.name;
+export const cliPackageVersion = packageJson.version;
 
 export interface CliRunOptions {
   signal?: AbortSignal;
@@ -87,6 +91,7 @@ export const cliHelp = `AIQ CLI
 
 Usage:
   aiq [--up-to <0-9> | --only <0-9> | --stage <stage>] [--format <json|text>]
+  aiq --version [--json | --format json]
   aiq <files...> [--files <files...>] [--files-from path] [--stdin-file-list]
   aiq run <files...> [--files <files...>] [--files-from path] [--stdin-file-list]
   aiq bench [--corpus-root <path>] [--scenario <id>] [--tag <tag>] [--kind <cold|warm|diff-only>]
@@ -135,6 +140,7 @@ Options:
   --stage <stage>
   --tag <tag>
   --up-to <0-9>
+  --version
   --verbose, -v
   --kind <cold|warm|diff-only>
   --profile <fast|standard|deep>
