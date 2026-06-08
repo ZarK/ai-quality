@@ -525,6 +525,7 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("Check accepts the same explicit target inputs as run.");
     expect(stdout.value).toContain("Examples:");
     expect(stdout.value).toContain("aiq --format json");
+    expect(stdout.value).toContain("aiq --version [--json | --format json]");
     expect(stdout.value).toContain("aiq config --set-stage 3");
     expect(stdout.value).toContain("aiq run src --up-to 3");
     expect(stdout.value).toContain("aiq evidence --format json");
@@ -541,6 +542,7 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("--print-config");
     expect(stdout.value).toContain("--set-stage <0-9>");
     expect(stdout.value).toContain("--up-to <0-9>");
+    expect(stdout.value).toContain("--version");
     expect(stdout.value).toContain("--verbose, -v");
     expect(stdout.value).toContain("aiq config initializes .aiq/aiq.config.json");
     expect(stdout.value).toContain("Default text output is compact");
@@ -561,6 +563,80 @@ describe("CLI foundation", () => {
     expect(stdout.value).toContain("aiq schema --format json expose QUBE-compatible");
     expect(stdout.value).toContain("aiq watch <files...>");
     expect(stdout.value).toContain("aiq serve [--host <host>] [--port <port>]");
+  });
+
+  it("prints the package version without running first-run", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-version-"));
+    const packageJson = JSON.parse(
+      await readFile(path.join(repoRoot, "packages", "cli", "package.json"), "utf8"),
+    ) as { name: string; version: string };
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    try {
+      const exitCode = await runCli(["node", "aiq", "--version"], {
+        cwd: tempDir,
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      });
+
+      expect(exitCode).toBe(0);
+      expect(stderr.value).toBe("");
+      expect(stdout.value).toBe(`${packageJson.version}\n`);
+      await expect(access(path.join(tempDir, ".aiq"))).rejects.toThrow();
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  it("prints a JSON package version envelope", async () => {
+    const packageJson = JSON.parse(
+      await readFile(path.join(repoRoot, "packages", "cli", "package.json"), "utf8"),
+    ) as { name: string; version: string };
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "--version", "--json"], {
+      cwd: process.cwd(),
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stderr.value).toBe("");
+    expect(JSON.parse(stdout.value)).toEqual({
+      ok: true,
+      command: "version",
+      package: { name: packageJson.name, version: packageJson.version },
+      version: packageJson.version,
+    });
+  });
+
+  it("keeps -v reserved for verbose first-run behavior", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-short-v-"));
+    const packageJson = JSON.parse(
+      await readFile(path.join(repoRoot, "packages", "cli", "package.json"), "utf8"),
+    ) as { version: string };
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    try {
+      const exitCode = await runCli(["node", "aiq", "-v"], {
+        cwd: tempDir,
+        stderr,
+        stdin: new MemoryInput(),
+        stdout,
+      });
+
+      expect(exitCode).toBe(0);
+      expect(stderr.value).toBe("");
+      expect(stdout.value).toContain("AIQ first run");
+      expect(stdout.value).not.toBe(`${packageJson.version}\n`);
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
   });
 
   it("shows the same command contract from aiq run --help", async () => {

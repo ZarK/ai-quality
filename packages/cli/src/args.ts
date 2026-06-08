@@ -35,6 +35,7 @@ const knownCommandNames = [
   "serve",
   "setup",
   "status",
+  "version",
   "watch",
 ] as const satisfies readonly PublicCommandName[];
 const knownCommandNameSet = new Set<string>(knownCommandNames);
@@ -44,9 +45,14 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
   while (args[0] === "--") {
     args.shift();
   }
+  const isVersionRequest = args.includes("--version");
   const isFirstRun = isImplicitFirstRun(args, cwd);
   const commandToken = isFirstRun ? undefined : resolveCommandToken(args[0], cwd);
-  const command: CommandName = isFirstRun ? "first-run" : parseCommand(commandToken);
+  const command: CommandName = isVersionRequest
+    ? "version"
+    : isFirstRun
+      ? "first-run"
+      : parseCommand(commandToken);
   const startIndex = commandToken === undefined ? 0 : 1;
 
   const parsed: ParsedArgs = {
@@ -76,6 +82,15 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
 
     if (argument === "--help" || argument === "-h") {
       parsed.help = true;
+      continue;
+    }
+
+    if (argument === "--version") {
+      continue;
+    }
+
+    if (argument === "--json" && parsed.command === "version") {
+      parsed.format = "json";
       continue;
     }
 
@@ -220,6 +235,34 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
   }
 
   if (parsed.help) {
+    return parsed;
+  }
+
+  if (parsed.command === "version") {
+    if (
+      parsed.files.length > 0 ||
+      parsed.filesFrom !== undefined ||
+      parsed.setupSubcommand !== undefined ||
+      parsed.stdinFileList ||
+      parsed.stages.length > 0 ||
+      parsed.profile !== undefined ||
+      parsed.outDir !== undefined ||
+      parsed.benchmarkCorpusRoot !== undefined ||
+      parsed.benchmarkScenarioIds.length > 0 ||
+      parsed.benchmarkTags.length > 0 ||
+      parsed.benchmarkKinds.length > 0 ||
+      parsed.configPrint ||
+      parsed.configSetStage !== undefined ||
+      parsed.debounceMs !== defaultWatchDebounceMs ||
+      parsed.host !== defaultServeHost ||
+      parsed.port !== defaultServePort ||
+      parsed.diffOnly ||
+      parsed.dryRun ||
+      parsed.verbose
+    ) {
+      throw new Error("The version command only accepts --version, --json, and --format.");
+    }
+
     return parsed;
   }
 
