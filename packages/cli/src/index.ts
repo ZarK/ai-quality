@@ -20,7 +20,14 @@ import {
 } from "./commands.js";
 import { runServeCommand } from "./serve.js";
 import { formatError } from "./shared.js";
-import { type CliIo, type CliRunOptions, type ParsedArgs, cliHelp } from "./types.js";
+import {
+  type CliIo,
+  type CliRunOptions,
+  type ParsedArgs,
+  cliHelp,
+  cliPackageName,
+  cliPackageVersion,
+} from "./types.js";
 import { runWatchCommand } from "./watch.js";
 
 export * from "./api.js";
@@ -48,6 +55,8 @@ export async function runCli(
   }
 
   switch (parsed.command) {
+    case "version":
+      return runVersionCommand(parsed, io);
     case "watch":
       return runWatchCommand(parsed, io, options);
     case "serve":
@@ -78,6 +87,23 @@ export async function runCli(
     case "check":
       return runCheckCommand(parsed, io);
   }
+}
+
+function runVersionCommand(parsed: ParsedArgs, io: CliIo): number {
+  if (parsed.format === "json") {
+    io.stdout.write(
+      `${JSON.stringify({
+        ok: true,
+        command: "version",
+        package: { name: cliPackageName, version: cliPackageVersion },
+        version: cliPackageVersion,
+      })}\n`,
+    );
+    return 0;
+  }
+
+  io.stdout.write(`${cliPackageVersion}\n`);
+  return 0;
 }
 
 function defaultIo(): CliIo {
