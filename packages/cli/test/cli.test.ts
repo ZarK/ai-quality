@@ -616,6 +616,9 @@ describe("CLI foundation", () => {
 
   it("keeps -v reserved for verbose first-run behavior", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-cli-short-v-"));
+    const packageJson = JSON.parse(
+      await readFile(path.join(repoRoot, "packages", "cli", "package.json"), "utf8"),
+    ) as { version: string };
     const stdout = new MemoryOutput();
     const stderr = new MemoryOutput();
 

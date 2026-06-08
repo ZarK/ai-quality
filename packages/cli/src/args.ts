@@ -47,11 +47,7 @@ export function parseArgs(argv: string[], cwd = process.cwd()): ParsedArgs {
   }
   const isVersionRequest = args.includes("--version");
   const isFirstRun = isImplicitFirstRun(args, cwd);
-  const commandToken = isVersionRequest
-    ? "version"
-    : isFirstRun
-      ? undefined
-      : resolveCommandToken(args[0], cwd);
+  const commandToken = isFirstRun ? undefined : resolveCommandToken(args[0], cwd);
   const command: CommandName = isVersionRequest
     ? "version"
     : isFirstRun
