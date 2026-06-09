@@ -1,4 +1,7 @@
+import type { RunResult } from "@tjalve/aiq/model";
 import { describe, expect, it } from "vitest";
+import { isRunResult } from "../src/evidence-guards.js";
+import { stageFindings } from "../src/evidence-state.js";
 import {
   path,
   MemoryInput,
@@ -11,6 +14,46 @@ import {
 } from "./cli-test-helpers.js";
 
 describe("CLI foundation", () => {
+  it("rejects reports with incomplete run summaries", () => {
+    expect(
+      isRunResult({
+        artifactType: "report",
+        finishedAt: new Date().toISOString(),
+        runId: "run-invalid",
+        summary: { status: "failed" },
+        stages: [],
+        request: { manifest: { files: ["src/index.ts"] } },
+      }),
+    ).toBe(false);
+  });
+
+  it("maps informational evidence diagnostics to medium severity", () => {
+    const command = {
+      id: "aiq-run",
+      argv: ["aiq", "run", "."] as [string, ...string[]],
+    };
+    const stage = {
+      diagnostics: [
+        {
+          file: "src/index.ts",
+          message: "informational finding",
+          severity: "info",
+          source: "test",
+        },
+      ],
+      durationMs: 0,
+      notes: [],
+      stageId: "lint",
+      status: "failed",
+      toolRuns: [],
+    } as RunResult["stages"][number];
+    const report = {
+      request: { manifest: { files: ["src/index.ts"] } },
+    } as RunResult;
+
+    expect(stageFindings(stage, report, command)[0]?.severity).toBe("medium");
+  });
+
   it("emits trusted malformed-quality evidence for invalid report shapes", async () => {
     const project = await createTypeScriptFixtureProject("aiq-cli-evidence-malformed-run-");
     const reportDir = path.join(project.root, ".aiq", "out");

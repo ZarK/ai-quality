@@ -77,7 +77,7 @@ export function stageFindings(
     title: diagnostic.message,
     stageId: stage.stageId,
     status: "fail",
-    severity: diagnostic.severity === "warning" ? "medium" : "high",
+    severity: diagnostic.severity === "error" ? "high" : "medium",
     affectedPaths: [diagnostic.file],
     rerunCommand: command,
   }));

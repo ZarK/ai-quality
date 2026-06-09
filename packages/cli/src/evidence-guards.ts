@@ -1,5 +1,19 @@
 import type { RunResult, StageStatus } from "@tjalve/aiq/model";
 
+const runSummaryNumberFields = [
+  "cacheHitCount",
+  "cacheHitRate",
+  "cacheMissCount",
+  "diagnosticCount",
+  "durationMs",
+  "fileCount",
+  "notImplementedStageCount",
+  "stageCount",
+  "taskCount",
+  "toolDurationMs",
+  "toolRunCount",
+] as const;
+
 export function isRunResult(value: unknown): value is RunResult {
   if (!isRecord(value)) {
     return false;
@@ -16,7 +30,11 @@ export function isRunResult(value: unknown): value is RunResult {
 }
 
 function isRunSummary(value: unknown): value is RunResult["summary"] {
-  return isRecord(value) && isRunStatus(value.status);
+  return (
+    isRecord(value) &&
+    isRunStatus(value.status) &&
+    runSummaryNumberFields.every((field) => typeof value[field] === "number")
+  );
 }
 
 function isRunRequest(value: unknown): value is RunResult["request"] {

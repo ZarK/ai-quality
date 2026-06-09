@@ -1,13 +1,14 @@
+import { type DotNetLiteralScanState, advanceDotNetLiteralScan } from "./dotnet-literal-scan.js";
+
 type DotNetScannerState = {
   index: number;
   inBlockComment: boolean;
   inChar: boolean;
   inString: boolean;
   inVerbatimString: boolean;
+  preserveLiterals: boolean;
   result: string;
 };
-
-type DotNetLiteralScanState = Omit<DotNetScannerState, "inBlockComment" | "result">;
 
 type DotNetBranchDepth = {
   braceDepth: number;
@@ -16,12 +17,21 @@ type DotNetBranchDepth = {
 };
 
 export function stripDotNetComments(source: string): string {
+  return stripDotNetText(source, true);
+}
+
+export function stripDotNetCommentsAndLiterals(source: string): string {
+  return stripDotNetText(source, false);
+}
+
+function stripDotNetText(source: string, preserveLiterals: boolean): string {
   const state: DotNetScannerState = {
     inBlockComment: false,
     inChar: false,
     inString: false,
     inVerbatimString: false,
     index: 0,
+    preserveLiterals,
     result: "",
   };
 
@@ -123,9 +133,9 @@ function consumeDotNetString(source: string, state: DotNetScannerState): boolean
   }
 
   const current = source[state.index];
-  state.result += current ?? "";
+  appendDotNetLiteralText(state, current);
   if (current === "\\") {
-    state.result += source[state.index + 1] ?? "";
+    appendDotNetLiteralText(state, source[state.index + 1]);
     state.index += 2;
     return true;
   }
@@ -143,9 +153,9 @@ function consumeDotNetVerbatimString(source: string, state: DotNetScannerState):
 
   const current = source[state.index];
   const next = source[state.index + 1];
-  state.result += current ?? "";
+  appendDotNetLiteralText(state, current);
   if (current === '"' && next === '"') {
-    state.result += next;
+    appendDotNetLiteralText(state, next);
     state.index += 2;
     return true;
   }
@@ -162,9 +172,9 @@ function consumeDotNetChar(source: string, state: DotNetScannerState): boolean {
   }
 
   const current = source[state.index];
-  state.result += current ?? "";
+  appendDotNetLiteralText(state, current);
   if (current === "\\") {
-    state.result += source[state.index + 1] ?? "";
+    appendDotNetLiteralText(state, source[state.index + 1]);
     state.index += 2;
     return true;
   }
@@ -194,112 +204,40 @@ function startDotNetLiteral(source: string, state: DotNetScannerState): boolean 
   const current = source[state.index];
   const next = source[state.index + 1];
   if (current === "@" && next === '"') {
-    state.result += '@"';
+    appendDotNetLiteralText(state, "@");
+    appendDotNetLiteralText(state, '"');
     state.inVerbatimString = true;
     state.index += 2;
     return true;
   }
   if (current === '"') {
-    state.result += current;
+    appendDotNetLiteralText(state, current);
     state.inString = true;
     state.index += 1;
     return true;
   }
   if (current === "'") {
-    state.result += current;
+    appendDotNetLiteralText(state, current);
     state.inChar = true;
     state.index += 1;
     return true;
   }
   return false;
+}
+
+function appendDotNetLiteralText(state: DotNetScannerState, value: string | undefined): void {
+  if (value === undefined) {
+    return;
+  }
+  if (state.preserveLiterals || value === "\n") {
+    state.result += value;
+  }
 }
 
 function skipDotNetLineComment(source: string, state: DotNetScannerState): void {
   while (state.index < source.length && source[state.index] !== "\n") {
     state.index += 1;
   }
-}
-
-function advanceDotNetLiteralScan(source: string, state: DotNetLiteralScanState): boolean {
-  return (
-    advanceDotNetStringScan(source, state) ||
-    advanceDotNetVerbatimStringScan(source, state) ||
-    advanceDotNetCharScan(source, state) ||
-    startDotNetLiteralScan(source, state)
-  );
-}
-
-function advanceDotNetStringScan(source: string, state: DotNetLiteralScanState): boolean {
-  if (!state.inString) {
-    return false;
-  }
-
-  const current = source[state.index];
-  if (current === "\\") {
-    state.index += 2;
-    return true;
-  }
-  if (current === '"') {
-    state.inString = false;
-  }
-  state.index += 1;
-  return true;
-}
-
-function advanceDotNetVerbatimStringScan(source: string, state: DotNetLiteralScanState): boolean {
-  if (!state.inVerbatimString) {
-    return false;
-  }
-
-  const current = source[state.index];
-  const next = source[state.index + 1];
-  if (current === '"' && next === '"') {
-    state.index += 2;
-    return true;
-  }
-  if (current === '"') {
-    state.inVerbatimString = false;
-  }
-  state.index += 1;
-  return true;
-}
-
-function advanceDotNetCharScan(source: string, state: DotNetLiteralScanState): boolean {
-  if (!state.inChar) {
-    return false;
-  }
-
-  const current = source[state.index];
-  if (current === "\\") {
-    state.index += 2;
-    return true;
-  }
-  if (current === "'") {
-    state.inChar = false;
-  }
-  state.index += 1;
-  return true;
-}
-
-function startDotNetLiteralScan(source: string, state: DotNetLiteralScanState): boolean {
-  const current = source[state.index];
-  const next = source[state.index + 1];
-  if (current === "@" && next === '"') {
-    state.inVerbatimString = true;
-    state.index += 2;
-    return true;
-  }
-  if (current === '"') {
-    state.inString = true;
-    state.index += 1;
-    return true;
-  }
-  if (current === "'") {
-    state.inChar = true;
-    state.index += 1;
-    return true;
-  }
-  return false;
 }
 
 function isDotNetTernaryQuestionMark(source: string, index: number): boolean {

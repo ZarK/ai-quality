@@ -93,11 +93,7 @@ export async function readJsonValue(filePath: string): Promise<unknown> {
     return undefined;
   }
 
-  try {
-    return JSON.parse(await readFile(filePath, "utf8")) as unknown;
-  } catch {
-    return undefined;
-  }
+  return JSON.parse(await readFile(filePath, "utf8")) as unknown;
 }
 
 export async function readOptionalTextFile(
