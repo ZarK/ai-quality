@@ -85,6 +85,10 @@ function parseStringArray(value: unknown, source: string): string[] {
 }
 
 export function parseStageList(value: string[], source: string): StageId[] {
+  if (value.length === 0) {
+    throw new ServeRequestValidationError(`${source} must include at least one stage.`);
+  }
+
   return value.map((stage) => {
     if (!stageIds.includes(stage as StageId)) {
       throw new ServeRequestValidationError(`Unsupported ${source} entry '${stage}'.`);

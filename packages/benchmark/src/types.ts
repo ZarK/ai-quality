@@ -4,27 +4,6 @@ export const benchmarkArtifactVersion = 2 as const;
 
 export const defaultBenchmarkOutDir = ".aiq/out/benchmark";
 
-const ignoredWorkspaceDirectories = new Set([
-  ".aiq",
-  ".git",
-  ".gradle",
-  ".idea",
-  ".mypy_cache",
-  ".terraform",
-  ".pytest_cache",
-  ".ruff_cache",
-  ".venv",
-  "__pycache__",
-  "bin",
-  "build",
-  "coverage",
-  "dist",
-  "node_modules",
-  "obj",
-  "target",
-  "venv",
-]);
-
 export type BenchmarkScenarioKind = "cold" | "diff-only" | "warm";
 export type BenchmarkInputShape = "full-repo" | "multi-file" | "single-file" | "sub-folder";
 export type BenchmarkScaleBand = "large" | "medium" | "small";

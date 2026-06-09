@@ -40,12 +40,7 @@ export async function createDoctorCommandOutput(
       const versionProblem =
         installed === undefined ? undefined : validateDoctorPrerequisiteVersion(prerequisite);
       return {
-        detail:
-          versionProblem ??
-          installed ??
-          (prerequisite.required
-            ? `not detected; ${prerequisite.install}`
-            : `not detected; ${prerequisite.install}`),
+        detail: versionProblem ?? installed ?? `not detected; ${prerequisite.install}`,
         install: prerequisite.install,
         name: prerequisite.name,
         ok: installed !== undefined && versionProblem === undefined ? true : !prerequisite.required,

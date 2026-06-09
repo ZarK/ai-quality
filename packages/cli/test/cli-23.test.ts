@@ -117,4 +117,20 @@ describe("CLI foundation", () => {
     expect(stderr.value).toContain("Input file not found:");
     expect(stderr.value).toContain("missing-cli-input.ts");
   });
+
+  it("does not classify bare dotted tokens as path inputs", async () => {
+    const stdout = new MemoryOutput();
+    const stderr = new MemoryOutput();
+
+    const exitCode = await runCli(["node", "aiq", "example.com"], {
+      cwd: process.cwd(),
+      stderr,
+      stdin: new MemoryInput(),
+      stdout,
+    });
+
+    expect(exitCode).toBe(2);
+    expect(stdout.value).toBe("");
+    expect(stderr.value).toContain("Unknown command: example.com");
+  });
 });

@@ -180,7 +180,6 @@ function looksLikePath(token: string, cwd: string): boolean {
     token.startsWith("/") ||
     token.includes("/") ||
     token.includes("\\") ||
-    token.includes(".") ||
     existsSync(path.resolve(cwd, token))
   );
 }

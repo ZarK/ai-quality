@@ -58,6 +58,7 @@ describe("CLI foundation", () => {
     });
 
     expect(busyResponse.status).toBe(503);
+    expect(busyResponse.headers.get("connection")).toBe("close");
     await expect(busyResponse.json()).resolves.toEqual({
       error: "AIQ serve is already processing another run.",
     });
@@ -122,6 +123,24 @@ describe("CLI foundation", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "manifest.files[0] must be a non-empty string.",
+    });
+
+    const emptyStagesResponse = await fetch(`${listening.url}/run`, {
+      body: JSON.stringify({
+        manifest: {
+          files: ["src/index.ts"],
+        },
+        stages: [],
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(emptyStagesResponse.status).toBe(400);
+    await expect(emptyStagesResponse.json()).resolves.toEqual({
+      error: "serve stages must include at least one stage.",
     });
     expect(stderr.value).toBe("");
 

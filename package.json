@@ -25,7 +25,7 @@
     "build:github-action-bundle": "node scripts/build-github-action-bundle.mjs",
     "bench": "node packages/cli/dist/bin/aiq.js bench --format text",
     "bench:ci": "node packages/cli/dist/bin/aiq.js bench --tag ci --format json",
-    "aiq:e2e": "vitest run packages/cli/test packages/engine/test packages/github-action/test packages/hook/test/hook.test.ts packages/mcp/test packages/opencode-plugin/test",
+    "aiq:e2e": "vitest run packages/benchmark/test packages/cli/test packages/engine/test packages/github-action/test packages/hook/test/hook.test.ts packages/mcp/test packages/opencode-plugin/test",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:publish-readiness": "node scripts/run-smoke-tests.mjs",

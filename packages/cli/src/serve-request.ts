@@ -54,7 +54,9 @@ export async function handleServeRequest(
 
     releaseLock = tryAcquireServeRunLock(runLock);
     if (releaseLock === undefined) {
+      response.setHeader("connection", "close");
       writeBusyServeResponse(response);
+      destroyRequestAfterResponse(request, response);
       return;
     }
 
