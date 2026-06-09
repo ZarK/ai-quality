@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const workspaceRoot = fileURLToPath(new URL("./", import.meta.url));
-const runInCi = Boolean(process.env.CI);
 
 export default defineConfig({
   resolve: {
@@ -44,7 +43,7 @@ export default defineConfig({
     ],
   },
   test: {
-    fileParallelism: !runInCi,
+    fileParallelism: false,
     include: ["packages/*/test/**/*.test.ts"],
     environment: "node",
   },

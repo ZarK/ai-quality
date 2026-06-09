@@ -20,7 +20,6 @@ else
 fi
 
 ISSUES_LIST="${CACHE_DIR}/issues-list.json"
-HIGH_PRI_LABELS="P1-Critical,P2-High"
 # Hardcode repository for Codex environments without git context
 REPO_OWNER="ZarK"
 REPO_NAME="ai-ws-finetune"
@@ -139,8 +138,9 @@ This folder contains cached GitHub issues for offline Codex access.
 EOF
 
 # Add issue counts by priority
-echo "### All Open Issues" >>"${CACHE_DIR}/README.md"
-jq -r '
+{
+	echo "### All Open Issues"
+	jq -r '
 group_by(.labels[]?.name | select(startswith("P"))) | 
 map({
     priority: (.[0].labels[]?.name | select(startswith("P"))), 
@@ -149,33 +149,34 @@ map({
 sort_by(.priority) | 
 .[] | 
 "- **\(.priority // "No Priority")**: \(.count) issues"
-' "$ISSUES_LIST" >>"${CACHE_DIR}/README.md"
+	' "$ISSUES_LIST"
 
-# Add critical path issues
-echo -e "\n### Critical Path (P1-Critical)" >>"${CACHE_DIR}/README.md"
-jq -r '
+	# Add critical path issues
+	echo -e "\n### Critical Path (P1-Critical)"
+	jq -r '
 .[] | 
 select(.labels[]?.name == "P1-Critical") | 
 "- [#\(.number)](\(.url)) - \(.title)"
-' "$ISSUES_LIST" >>"${CACHE_DIR}/README.md"
+	' "$ISSUES_LIST"
 
-echo -e "\n### High Priority (P2-High)" >>"${CACHE_DIR}/README.md"
-jq -r '
+	echo -e "\n### High Priority (P2-High)"
+	jq -r '
 .[] | 
 select(.labels[]?.name == "P2-High") | 
 "- [#\(.number)](\(.url)) - \(.title)"
-' "$ISSUES_LIST" >>"${CACHE_DIR}/README.md"
+	' "$ISSUES_LIST"
 
-# Add epic organization
-echo -e "\n### By Epic" >>"${CACHE_DIR}/README.md"
-jq -r '
+	# Add epic organization
+	echo -e "\n### By Epic"
+	jq -r '
 group_by(.labels[]?.name | select(startswith("Epic-"))) | 
 map(select(length > 0)) | 
 sort_by(.[0].labels[]?.name | select(startswith("Epic-"))) | 
 .[] | 
 "#### " + (.[0].labels[]?.name | select(startswith("Epic-"))) + "\n" + 
 (map("- [#\(.number)](\(.url)) - \(.title)") | join("\n"))
-' "$ISSUES_LIST" >>"${CACHE_DIR}/README.md"
+	' "$ISSUES_LIST"
+} >>"${CACHE_DIR}/README.md"
 
 echo "✅ Issues cache complete!"
 echo ""

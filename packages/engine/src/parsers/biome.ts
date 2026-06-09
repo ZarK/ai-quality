@@ -113,18 +113,25 @@ export function resolveBiomeRange(
 
 export function readOffsetRange(value: unknown): { end: number; start: number } | undefined {
   if (Array.isArray(value) && value.length >= 2) {
-    const start = readNumber(value[0]);
-    const end = readNumber(value[1]);
-    if (start !== undefined && end !== undefined) {
-      return { end, start };
-    }
+    return readOffsetRangeTuple(value);
   }
 
   if (typeof value !== "object" || value === null) {
     return undefined;
   }
 
-  const record = value as Record<string, unknown>;
+  return readOffsetRangeRecord(value as Record<string, unknown>);
+}
+
+function readOffsetRangeTuple(value: unknown[]): { end: number; start: number } | undefined {
+  const start = readNumber(value[0]);
+  const end = readNumber(value[1]);
+  return start === undefined || end === undefined ? undefined : { end, start };
+}
+
+function readOffsetRangeRecord(
+  record: Record<string, unknown>,
+): { end: number; start: number } | undefined {
   const start = readNumber(record.start ?? record.startOffset ?? record.offset);
   const end = readNumber(record.end ?? record.endOffset);
   if (start === undefined || end === undefined) {

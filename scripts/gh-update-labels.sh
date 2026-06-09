@@ -32,8 +32,8 @@ case $ACTION in
 "priority")
 	if [[ "$VALUE" =~ ^P[1-4]-(Critical|High|Medium|Low)$ ]]; then
 		# Remove existing priority labels
-		gh issue edit $ISSUE_NUM --remove-label "P1-Critical,P2-High,P3-Medium,P4-Low" 2>/dev/null
-		gh issue edit $ISSUE_NUM --add-label "$VALUE"
+		gh issue edit "$ISSUE_NUM" --remove-label "P1-Critical,P2-High,P3-Medium,P4-Low" 2>/dev/null
+		gh issue edit "$ISSUE_NUM" --add-label "$VALUE"
 		echo "✅ Set issue #$ISSUE_NUM priority to $VALUE"
 	else
 		echo "❌ Invalid priority. Use P1-Critical, P2-High, P3-Medium, or P4-Low"
@@ -42,8 +42,8 @@ case $ACTION in
 "status")
 	if [[ "$VALUE" =~ ^S-(Ready|InProgress|Blocked|Blocking)$ ]]; then
 		# Remove existing status labels
-		gh issue edit $ISSUE_NUM --remove-label "S-Ready,S-InProgress,S-Blocked,S-Blocking" 2>/dev/null
-		gh issue edit $ISSUE_NUM --add-label "$VALUE"
+		gh issue edit "$ISSUE_NUM" --remove-label "S-Ready,S-InProgress,S-Blocked,S-Blocking" 2>/dev/null
+		gh issue edit "$ISSUE_NUM" --add-label "$VALUE"
 		echo "✅ Set issue #$ISSUE_NUM status to $VALUE"
 	else
 		echo "❌ Invalid status. Use S-Ready, S-InProgress, S-Blocked, or S-Blocking"
@@ -52,8 +52,8 @@ case $ACTION in
 "component")
 	if [[ "$VALUE" =~ ^C-(Training|Dataset|Evaluation|Infrastructure)$ ]]; then
 		# Remove existing component labels
-		gh issue edit $ISSUE_NUM --remove-label "C-Training,C-Dataset,C-Evaluation,C-Infrastructure" 2>/dev/null
-		gh issue edit $ISSUE_NUM --add-label "$VALUE"
+		gh issue edit "$ISSUE_NUM" --remove-label "C-Training,C-Dataset,C-Evaluation,C-Infrastructure" 2>/dev/null
+		gh issue edit "$ISSUE_NUM" --add-label "$VALUE"
 		echo "✅ Set issue #$ISSUE_NUM component to $VALUE"
 	else
 		echo "❌ Invalid component. Use C-Training, C-Dataset, C-Evaluation, or C-Infrastructure"
@@ -65,8 +65,8 @@ case $ACTION in
 
 	if [[ "$VALUE" =~ ^Epic-(CVE-Monitoring|Fast-Training|CTF-System|Dataset-Generation|Demo-Orchestration|Dashboard|Integration|Security-Safety|Performance|Documentation|Planning)$ ]]; then
 		# Remove existing epic labels
-		gh issue edit $ISSUE_NUM --remove-label "$valid_epics" 2>/dev/null
-		gh issue edit $ISSUE_NUM --add-label "$VALUE"
+		gh issue edit "$ISSUE_NUM" --remove-label "$valid_epics" 2>/dev/null
+		gh issue edit "$ISSUE_NUM" --add-label "$VALUE"
 		echo "✅ Set issue #$ISSUE_NUM epic to $VALUE"
 	else
 		echo "❌ Invalid epic. Use one of:"
@@ -77,23 +77,23 @@ case $ACTION in
 	fi
 	;;
 "ready")
-	gh issue edit $ISSUE_NUM --remove-label "S-Blocked,S-InProgress" 2>/dev/null
-	gh issue edit $ISSUE_NUM --add-label "S-Ready"
+	gh issue edit "$ISSUE_NUM" --remove-label "S-Blocked,S-InProgress" 2>/dev/null
+	gh issue edit "$ISSUE_NUM" --add-label "S-Ready"
 	echo "✅ Marked issue #$ISSUE_NUM as ready"
 	;;
 "start")
-	gh issue edit $ISSUE_NUM --remove-label "S-Ready,S-Blocked" 2>/dev/null
-	gh issue edit $ISSUE_NUM --add-label "S-InProgress"
+	gh issue edit "$ISSUE_NUM" --remove-label "S-Ready,S-Blocked" 2>/dev/null
+	gh issue edit "$ISSUE_NUM" --add-label "S-InProgress"
 	echo "✅ Started work on issue #$ISSUE_NUM"
 	;;
 "block")
-	gh issue edit $ISSUE_NUM --remove-label "S-Ready,S-InProgress" 2>/dev/null
-	gh issue edit $ISSUE_NUM --add-label "S-Blocked"
+	gh issue edit "$ISSUE_NUM" --remove-label "S-Ready,S-InProgress" 2>/dev/null
+	gh issue edit "$ISSUE_NUM" --add-label "S-Blocked"
 	echo "🚫 Marked issue #$ISSUE_NUM as blocked"
 	;;
 "unblock")
-	gh issue edit $ISSUE_NUM --remove-label "S-Blocked" 2>/dev/null
-	gh issue edit $ISSUE_NUM --add-label "S-Ready"
+	gh issue edit "$ISSUE_NUM" --remove-label "S-Blocked" 2>/dev/null
+	gh issue edit "$ISSUE_NUM" --add-label "S-Ready"
 	echo "✅ Unblocked issue #$ISSUE_NUM (marked as ready)"
 	;;
 *)

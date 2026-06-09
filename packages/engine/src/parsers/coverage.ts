@@ -47,24 +47,32 @@ export function readLcovLineRate(reportContents: string | undefined): number | u
     return undefined;
   }
 
-  let foundData = false;
-  let linesFound = 0;
-  let linesHit = 0;
+  const totals = { foundData: false, linesFound: 0, linesHit: 0 };
   for (const line of reportContents.split(/\r?\n/u)) {
-    if (line.startsWith("LF:")) {
-      linesFound += readIntegerString(line.slice(3)) ?? 0;
-      foundData = true;
-    } else if (line.startsWith("LH:")) {
-      linesHit += readIntegerString(line.slice(3)) ?? 0;
-      foundData = true;
-    }
+    addLcovLineTotals(totals, line);
   }
 
-  if (!foundData || linesFound === 0) {
+  if (!totals.foundData || totals.linesFound === 0) {
     return undefined;
   }
 
-  return (linesHit / linesFound) * 100;
+  return (totals.linesHit / totals.linesFound) * 100;
+}
+
+function addLcovLineTotals(
+  totals: { foundData: boolean; linesFound: number; linesHit: number },
+  line: string,
+): void {
+  if (line.startsWith("LF:")) {
+    totals.linesFound += readIntegerString(line.slice(3)) ?? 0;
+    totals.foundData = true;
+    return;
+  }
+
+  if (line.startsWith("LH:")) {
+    totals.linesHit += readIntegerString(line.slice(3)) ?? 0;
+    totals.foundData = true;
+  }
 }
 
 export function readCoverageMetric(

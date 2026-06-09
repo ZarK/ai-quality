@@ -8,25 +8,16 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "brandColor": "#2563EB",
-    "capabilities": [
-      "Interactive",
-      "Write"
-    ],
+    "capabilities": ["Interactive", "Write"],
     "category": "Coding",
-    "defaultPrompt": [
-      "Inspect AI Umpire continuation state"
-    ],
+    "defaultPrompt": ["Inspect AI Umpire continuation state"],
     "developerName": "AI Umpire",
     "displayName": "AI Umpire",
     "longDescription": "Installs a repo-local Codex Stop hook that delegates to pnpm exec aiu hook-stop --tool codex.",
     "shortDescription": "Codex Stop hook for AI Umpire",
     "websiteURL": "https://github.com/ZarK/ai-umpire"
   },
-  "keywords": [
-    "ai-umpire",
-    "continuation",
-    "hooks"
-  ],
+  "keywords": ["ai-umpire", "continuation", "hooks"],
   "license": "MIT",
   "name": "ai-umpire",
   "repository": "https://github.com/ZarK/ai-umpire",

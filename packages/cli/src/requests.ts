@@ -53,20 +53,7 @@ export async function createManifestInput(
   }
 
   if (parsed.filesFrom !== undefined) {
-    let fileList: string;
-    try {
-      fileList = await readFile(path.resolve(io.cwd, parsed.filesFrom), "utf8");
-    } catch (error) {
-      if (isErrorCode(error, "ENOENT")) {
-        throw new Error(
-          `File list not found: ${parsed.filesFrom}. Check the path or pass files directly with aiq run <paths...>.`,
-          { cause: error },
-        );
-      }
-
-      throw error;
-    }
-    manifestFiles.push(...splitLines(fileList));
+    manifestFiles.push(...(await readFilesFromManifestList(parsed.filesFrom, io.cwd)));
     sources.add("file-list");
   }
 
@@ -79,19 +66,47 @@ export async function createManifestInput(
     throw new Error(createMissingManifestMessage(parsed.command));
   }
 
-  if (
-    (parsed.command === "run" || parsed.command === "check") &&
-    manifestFiles.some((file) => resolvesToProjectRoot(file, io.cwd))
-  ) {
-    throw new Error(
-      `Use aiq for the configured project gate. Use aiq ${parsed.command} <paths...> only when you want explicit file or subtree targets.`,
-    );
-  }
+  assertNoProjectRootManifestTarget(parsed.command, manifestFiles, io.cwd);
 
   return {
     files: manifestFiles,
     source: resolveManifestSource(sources),
   };
+}
+
+async function readFilesFromManifestList(filesFrom: string, cwd: string): Promise<string[]> {
+  try {
+    return splitLines(await readFile(path.resolve(cwd, filesFrom), "utf8"));
+  } catch (error) {
+    if (isErrorCode(error, "ENOENT")) {
+      throw new Error(
+        `File list not found: ${filesFrom}. Check the path or pass files directly with aiq run <paths...>.`,
+        { cause: error },
+      );
+    }
+
+    throw error;
+  }
+}
+
+function assertNoProjectRootManifestTarget(
+  command: ParsedArgs["command"],
+  manifestFiles: readonly string[],
+  cwd: string,
+): void {
+  if (!isExplicitRunCommand(command)) {
+    return;
+  }
+
+  if (manifestFiles.some((file) => resolvesToProjectRoot(file, cwd))) {
+    throw new Error(
+      `Use aiq for the configured project gate. Use aiq ${command} <paths...> only when you want explicit file or subtree targets.`,
+    );
+  }
+}
+
+function isExplicitRunCommand(command: ParsedArgs["command"]): boolean {
+  return command === "run" || command === "check";
 }
 
 function resolvesToProjectRoot(file: string, cwd: string): boolean {

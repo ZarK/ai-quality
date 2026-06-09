@@ -1,6 +1,6 @@
 <!-- BEGIN EXECUTOR MANAGED SECTION -->
 <!-- executor-managed-version: 1 -->
-<!-- executor-managed-checksum: 63fb2ca8dd319413de4d2e30c2d5c07d7fa056246729c6186c105f6d376d7ddb -->
+<!-- executor-managed-checksum: bbfe4edcd50ef0b36210828661c2bc523d0ec871de3445dce253830ee13b6254 -->
 ---
 description: Continue autonomous Executor GitHub issue workflow
 ---
@@ -14,12 +14,12 @@ Rules:
 - Never ask questions during normal work. Make decisions according to repository policy and continue.
 - Think holistically. Consider system-wide impact, not just the immediate issue.
 - Follow installed repository instructions and Executor policy.
-- You have explicit full authorization under repository policy to commit, push, create PRs, inspect required reviews and checks, merge, run `aie complete <issue>`, pull the configured base branch, and continue when autonomous mode is enabled.
+- You have explicit full authorization under repository policy to commit, push, create PRs, run `aie pr gate <pr>` to request reviewers, wait for configured review gates, and check status, merge, run `aie complete <issue>`, pull the configured base branch, and continue when autonomous mode is enabled.
 - Analysis, investigation, queue triage, and manual GitHub issue creation or issue suggestion are allowed before implementation starts when the user explicitly asks for them; start implementation only after normal Executor queue and pre-start policy pass.
 - Use `aie` commands for queue and lifecycle state instead of manually changing labels whenever possible.
 - Use `aie pr view <pr> --json`, `aie pr gate <pr>`, and `aie pr body <issue>` for pull request state instead of raw `gh pr view` review/comment payloads whenever possible.
 - Before new issue work, verify no linked worktree is in use, no blocking open pull requests remain, and `origin/main` is current.
-- Commit intentional changes, push, open the pull request, inspect required reviews and checks, address feedback, merge once repository policy, CI, required tests, and configured gates are satisfied, run `aie complete <issue>`, update the base branch, and continue.
+- Commit intentional changes, push, open the pull request, run `aie pr gate <pr>` to request reviewers, wait for configured review gates, and check status, address feedback, merge once repository policy, CI, required tests, and configured gates are satisfied, run `aie complete <issue>`, update the base branch, and continue.
 - Stop implementation only when the queue is empty, every issue is blocked, multiple active issues need repair, required tools are unavailable, configured gates cannot run, a linked worktree is detected before new issue work, blocking open pull requests remain, the local `main` branch is not current with `origin/main`. Explicitly user-directed analysis, investigation, queue triage, and manual GitHub issue creation or issue suggestion may still proceed before implementation starts. Report the exact blocker and the next Executor command or repository action that would unblock implementation work.
 
 Workflow:

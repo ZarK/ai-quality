@@ -1,0 +1,205 @@
+import path from "node:path";
+
+import type { BenchmarkScenario } from "./types.js";
+
+export function createBenchmarkCorpusPart09(root: string): BenchmarkScenario[] {
+  const fixture = (relativePath: string): string => path.resolve(root, relativePath);
+
+  return [
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Warm multi-file lint benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-lint-multi-file-warm",
+      inputs: ["example.ps1", "utils.ps1"],
+      kind: "warm",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "multi-file",
+        tags: ["lint", "multi-file", "powershell", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["lint"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Cold full-repo lint benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-lint-full-repo-cold",
+      inputs: ["."],
+      kind: "cold",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["cold", "full-repo", "lint", "powershell", "small"],
+      },
+      profile: "standard",
+      stages: ["lint"],
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { format: 20_000 },
+      },
+      description: "Diff-only single-file format benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-format-single-file-diff",
+      inputs: ["example.ps1"],
+      kind: "diff-only",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["diff-only", "format", "powershell", "single-file", "small"],
+      },
+      profile: "fast",
+      stages: ["format"],
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { format: 20_000 },
+      },
+      description: "Warm full-repo format benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-format-full-repo-warm",
+      inputs: ["."],
+      kind: "warm",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["format", "full-repo", "powershell", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["format"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 30_000,
+        maxStageDurationMs: { unit: 30_000 },
+      },
+      description: "Warm single-file unit benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-unit-single-file-warm",
+      inputs: ["example.tests.ps1"],
+      kind: "warm",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["powershell", "single-file", "small", "unit", "warm"],
+      },
+      profile: "standard",
+      stages: ["unit"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 30_000,
+        maxStageDurationMs: { unit: 30_000 },
+      },
+      description: "Cold full-repo unit benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-unit-full-repo-cold",
+      inputs: ["."],
+      kind: "cold",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["cold", "full-repo", "powershell", "small", "unit"],
+      },
+      profile: "standard",
+      stages: ["unit"],
+    },
+    {
+      budget: {
+        maxDurationMs: 30_000,
+        maxStageDurationMs: { coverage: 30_000 },
+      },
+      description: "Warm full-repo coverage benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-coverage-full-repo-warm",
+      inputs: ["."],
+      kind: "warm",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["coverage", "full-repo", "powershell", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["coverage"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Cold single-file lint benchmark for the HTML fixture.",
+      fixturePath: fixture("test-projects/html-css"),
+      id: "html-lint-single-file-cold",
+      inputs: ["index.html"],
+      kind: "cold",
+      metadata: {
+        languages: ["html"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["cold", "html", "lint", "single-file", "small"],
+      },
+      profile: "fast",
+      stages: ["lint"],
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Warm full-repo lint benchmark for the HTML fixture.",
+      fixturePath: fixture("test-projects/html-css"),
+      id: "html-lint-full-repo-warm",
+      inputs: ["."],
+      kind: "warm",
+      metadata: {
+        languages: ["html"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["full-repo", "html", "lint", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["lint"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Cold single-file lint benchmark for the CSS fixture.",
+      fixturePath: fixture("test-projects/html-css"),
+      id: "css-lint-single-file-cold",
+      inputs: ["styles.css"],
+      kind: "cold",
+      metadata: {
+        languages: ["css"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["cold", "css", "lint", "single-file", "small"],
+      },
+      profile: "fast",
+      stages: ["lint"],
+    },
+  ];
+}

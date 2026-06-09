@@ -90,7 +90,8 @@ case $COMMAND in
 	fi
 
 	echo "🔍 EPIC: $EPIC_LABEL"
-	echo "$(printf '%.0s=' {1..50})"
+	printf '%.0s=' {1..50}
+	echo ""
 	echo ""
 
 	# Show epic issues with status
@@ -109,7 +110,8 @@ case $COMMAND in
 	fi
 
 	echo "📊 EPIC PROGRESS: $EPIC_LABEL"
-	echo "$(printf '%.0s=' {1..40})"
+	printf '%.0s=' {1..40}
+	echo ""
 	echo ""
 
 	# Calculate progress statistics
@@ -211,7 +213,8 @@ case $COMMAND in
 					"Epic-Planning") echo "🎯 PLANNING" ;;
 					*) echo "📋 OTHER" ;;
 					esac
-					echo "$(printf '%.0s─' {1..20})"
+					printf '%.0s─' {1..20}
+					echo ""
 					current_epic="$epic"
 				fi
 
