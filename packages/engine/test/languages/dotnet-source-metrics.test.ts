@@ -33,6 +33,22 @@ public class Greeter
     expect(metrics.maxComplexity.score).toBe(1);
   });
 
+  it("ignores decision tokens inside comments", async () => {
+    const metrics = await readDotNetFileMetrics(`
+public class Greeter
+{
+  // if (flag) ? true : false
+  /* while (flag) { return flag ? 1 : 0; } */
+  public string Greet()
+  {
+    return "hello";
+  }
+}
+`);
+
+    expect(metrics.maxComplexity.score).toBe(1);
+  });
+
   it("throws when an existing JSON report is malformed", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "aiq-dotnet-json-"));
     try {

@@ -71,5 +71,5 @@ function countDotNetDecisions(source: string): number {
     0,
   );
 
-  return keywordDecisions + countDotNetTernaryOperators(source);
+  return keywordDecisions + countDotNetTernaryOperators(decisionText);
 }
