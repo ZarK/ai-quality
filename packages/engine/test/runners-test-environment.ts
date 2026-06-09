@@ -4,9 +4,9 @@ import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
-import { runEngine } from "../src/index.js";
+import { runEngine as runEngineBase } from "../src/index.js";
 import { buildEngineContext } from "../src/request.js";
-import { runPlannedTask } from "../src/runners.js";
+import { runPlannedTask as runPlannedTaskBase } from "../src/runners.js";
 import { ToolRunner } from "../src/tool-runner.js";
 import * as binaries from "../src/tools/binary-resolver.js";
 import { withExclusiveToolLock } from "./exclusive-tool-lock.js";
@@ -190,6 +190,38 @@ export async function withExclusiveRust<T>(run: () => Promise<T>): Promise<T> {
   return withExclusiveToolLock("rust", run);
 }
 
+export function runEngine(
+  request: Parameters<typeof runEngineBase>[0],
+): ReturnType<typeof runEngineBase> {
+  const run = () => runEngineBase(request);
+  return shouldUseGradleLock(request.manifest.files)
+    ? (withExclusiveToolLock("gradle", run) as ReturnType<typeof runEngineBase>)
+    : run();
+}
+
+export function runPlannedTask(
+  task: Parameters<typeof runPlannedTaskBase>[0],
+  cwd: Parameters<typeof runPlannedTaskBase>[1],
+): ReturnType<typeof runPlannedTaskBase> {
+  const run = () => runPlannedTaskBase(task, cwd);
+  return shouldUseGradleLock(task.files)
+    ? (withExclusiveToolLock("gradle", run) as ReturnType<typeof runPlannedTaskBase>)
+    : run();
+}
+
+function shouldUseGradleLock(files: readonly string[]): boolean {
+  return files.some((file) => {
+    const baseName = path.basename(file).toLowerCase();
+    return (
+      file.endsWith(".kt") ||
+      baseName === "build.gradle" ||
+      baseName === "build.gradle.kts" ||
+      baseName === "settings.gradle" ||
+      baseName === "settings.gradle.kts"
+    );
+  });
+}
+
 export async function resolvePowerShellModuleAvailable(moduleName: string): Promise<boolean> {
   const toolRunner = new ToolRunner();
   return (await toolRunner.resolvePowerShellModuleManifest(moduleName)) !== undefined;
@@ -227,8 +259,6 @@ export {
   readFile,
   readdir,
   rm,
-  runEngine,
-  runPlannedTask,
   withExclusiveToolLock,
   writeFile,
 };

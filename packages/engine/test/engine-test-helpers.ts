@@ -9,7 +9,7 @@ import {
   createRunPlan,
   normalizeFileManifest,
   resolveRunRequest,
-  runEngine,
+  runEngine as runEngineBase,
   writeReportArtifact,
 } from "../src/index.js";
 import { type ToolRunOutcome, ToolRunner } from "../src/tool-runner.js";
@@ -49,6 +49,28 @@ export const fixtureYamlFile = path.resolve("test-projects/yaml/config.yaml");
 
 export async function withExclusiveRust<T>(run: () => Promise<T>): Promise<T> {
   return withExclusiveToolLock("rust", run);
+}
+
+export function runEngine(
+  request: Parameters<typeof runEngineBase>[0],
+): ReturnType<typeof runEngineBase> {
+  const run = () => runEngineBase(request);
+  return shouldUseGradleLock(request.manifest.files)
+    ? (withExclusiveToolLock("gradle", run) as ReturnType<typeof runEngineBase>)
+    : run();
+}
+
+function shouldUseGradleLock(files: readonly string[]): boolean {
+  return files.some((file) => {
+    const baseName = path.basename(file).toLowerCase();
+    return (
+      file.endsWith(".kt") ||
+      baseName === "build.gradle" ||
+      baseName === "build.gradle.kts" ||
+      baseName === "settings.gradle" ||
+      baseName === "settings.gradle.kts"
+    );
+  });
 }
 
 export async function createDotNetFixtureProject(
@@ -298,7 +320,6 @@ export {
   resolvePythonCommand,
   resolveRunRequest,
   rm,
-  runEngine,
   withExclusiveToolLock,
   writeFile,
   writeReportArtifact,
