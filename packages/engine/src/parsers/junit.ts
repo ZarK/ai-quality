@@ -16,59 +16,104 @@ export async function parseJvmJunitReport(
     };
   }
 
-  const suiteAttributes = parseXmlAttributes(/<testsuite\b([^>]*)>/u.exec(reportXml)?.[1] ?? "");
-  const total = readIntegerString(suiteAttributes.tests) ?? 0;
-  const failures = readIntegerString(suiteAttributes.failures) ?? 0;
-  const errors = readIntegerString(suiteAttributes.errors) ?? 0;
-  const skipped = readIntegerString(suiteAttributes.skipped) ?? 0;
-  const failed = failures + errors;
-  const passed = Math.max(0, total - failed - skipped);
+  const summary = readJvmJunitSummary(reportXml);
   const diagnostics: Diagnostic[] = [];
 
   for (const match of reportXml.matchAll(
     /<testcase\b([^>]*)>([\s\S]*?)<\/testcase>|<testcase\b([^>]*)\/>/gu,
   )) {
-    const attributeSource = match[1] ?? match[3] ?? "";
-    const testcaseAttributes = parseXmlAttributes(attributeSource);
-    const body = match[2] ?? "";
-    const failureMatch = /<(failure|error)\b([^>]*)>([\s\S]*?)<\/\1>/u.exec(body);
-    if (failureMatch === null) {
-      continue;
+    const diagnostic = createJvmJunitFailureDiagnostic(match, projectRoot);
+    if (diagnostic !== undefined) {
+      diagnostics.push(diagnostic);
     }
-
-    const failureAttributes = parseXmlAttributes(failureMatch[2] ?? "");
-    const failureMessage = decodeXmlEntities(failureAttributes.message ?? "").trim();
-    const failureBody = decodeXmlEntities(stripXmlTags(failureMatch[3] ?? "")).trim();
-    const locationMatch = /(\/[^\s:]+\.java):(\d+)/u.exec(failureBody);
-    const file =
-      resolveDiagnosticFile(testcaseAttributes.file, projectRoot) ??
-      resolveDiagnosticFile(locationMatch?.[1], projectRoot) ??
-      projectRoot;
-    const messageParts = [
-      testcaseAttributes.name ?? "Test failure",
-      failureMessage,
-      failureBody,
-    ].filter((value) => value !== undefined && value.trim().length > 0);
-    const diagnostic: Diagnostic = {
-      file,
-      message: messageParts.join("\n"),
-      severity: "error",
-      source: "junit",
-    };
-    const lineNumber = readIntegerString(locationMatch?.[2]);
-    if (lineNumber !== undefined) {
-      diagnostic.range = {
-        startColumn: 1,
-        startLine: lineNumber,
-      };
-    }
-    diagnostics.push(diagnostic);
   }
 
   return {
     diagnostics,
-    summary: { failed, passed, total },
+    summary,
   };
+}
+
+function readJvmJunitSummary(reportXml: string): { failed: number; passed: number; total: number } {
+  const suiteAttributes = parseXmlAttributes(/<testsuite\b([^>]*)>/u.exec(reportXml)?.[1] ?? "");
+  const total = readIntegerString(suiteAttributes.tests) ?? 0;
+  const failed =
+    (readIntegerString(suiteAttributes.failures) ?? 0) +
+    (readIntegerString(suiteAttributes.errors) ?? 0);
+  const skipped = readIntegerString(suiteAttributes.skipped) ?? 0;
+  return {
+    failed,
+    passed: Math.max(0, total - failed - skipped),
+    total,
+  };
+}
+
+function createJvmJunitFailureDiagnostic(
+  match: RegExpExecArray,
+  projectRoot: string,
+): Diagnostic | undefined {
+  const testcaseAttributes = parseXmlAttributes(match[1] ?? match[3] ?? "");
+  const failure = readJvmJunitFailure(match[2] ?? "");
+  if (failure === undefined) {
+    return undefined;
+  }
+
+  const locationMatch = /(\/[^\s:]+\.java):(\d+)/u.exec(failure.body);
+  const diagnostic: Diagnostic = {
+    file: resolveJvmJunitFailureFile(testcaseAttributes, locationMatch, projectRoot),
+    message: readJvmJunitFailureMessage(testcaseAttributes, failure),
+    severity: "error",
+    source: "junit",
+  };
+  addJvmJunitFailureRange(diagnostic, locationMatch);
+  return diagnostic;
+}
+
+function resolveJvmJunitFailureFile(
+  testcaseAttributes: Record<string, string>,
+  locationMatch: RegExpExecArray | null,
+  projectRoot: string,
+): string {
+  return (
+    resolveDiagnosticFile(testcaseAttributes.file, projectRoot) ??
+    resolveDiagnosticFile(locationMatch?.[1], projectRoot) ??
+    projectRoot
+  );
+}
+
+function readJvmJunitFailureMessage(
+  testcaseAttributes: Record<string, string>,
+  failure: { body: string; message: string },
+): string {
+  return [testcaseAttributes.name ?? "Test failure", failure.message, failure.body]
+    .filter((value) => value.trim().length > 0)
+    .join("\n");
+}
+
+function readJvmJunitFailure(body: string): { body: string; message: string } | undefined {
+  const failureMatch = /<(failure|error)\b([^>]*)>([\s\S]*?)<\/\1>/u.exec(body);
+  if (failureMatch === null) {
+    return undefined;
+  }
+
+  const failureAttributes = parseXmlAttributes(failureMatch[2] ?? "");
+  return {
+    body: decodeXmlEntities(stripXmlTags(failureMatch[3] ?? "")).trim(),
+    message: decodeXmlEntities(failureAttributes.message ?? "").trim(),
+  };
+}
+
+function addJvmJunitFailureRange(
+  diagnostic: Diagnostic,
+  locationMatch: RegExpExecArray | null,
+): void {
+  const lineNumber = readIntegerString(locationMatch?.[2]);
+  if (lineNumber !== undefined) {
+    diagnostic.range = {
+      startColumn: 1,
+      startLine: lineNumber,
+    };
+  }
 }
 
 export async function parseJvmJunitReports(

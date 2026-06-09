@@ -92,7 +92,7 @@
     },
     "instructions": {
       "opencodeCommandAlias": false,
-      "namingRules": false,
+      "namingRules": true,
       "promptInjectionWarning": true,
       "noCreditWarning": true,
       "implementationGuardrails": true,

@@ -29,47 +29,72 @@ export function parsePowerShellAnalyzerDiagnostics(output: string, cwd: string):
       : [];
 
   return records.flatMap((record) => {
-    const file =
-      resolveDiagnosticFile(readString(record, "ScriptPath"), cwd) ??
-      resolveDiagnosticFile(readNestedString(record, ["Extent", "File"]), cwd) ??
-      resolveDiagnosticFile(readNestedString(record, ["Extent", "ScriptName"]), cwd);
-    if (file === undefined) {
-      return [];
-    }
-
-    const diagnostic: Diagnostic = {
-      file,
-      message: readString(record, "Message") ?? "PSScriptAnalyzer reported a diagnostic.",
-      severity: normalizeSeverity(
-        readString(record, "Severity")?.toLowerCase() === "parseerror"
-          ? "error"
-          : readString(record, "Severity")?.toLowerCase(),
-      ),
-      source: "psscriptanalyzer",
-    };
-    const code = readString(record, "RuleName");
-    if (code !== undefined) {
-      diagnostic.code = code;
-    }
-
-    const startLine =
-      readNumber(record.Line) ?? readNumber(readNestedValue(record, ["Extent", "StartLineNumber"]));
-    const startColumn =
-      readNumber(record.Column) ??
-      readNumber(readNestedValue(record, ["Extent", "StartColumnNumber"]));
-    const endLine = readNumber(readNestedValue(record, ["Extent", "EndLineNumber"]));
-    const endColumn = readNumber(readNestedValue(record, ["Extent", "EndColumnNumber"]));
-    if (startLine !== undefined && startColumn !== undefined) {
-      diagnostic.range = {
-        ...(endColumn === undefined ? {} : { endColumn }),
-        ...(endLine === undefined ? {} : { endLine }),
-        startColumn,
-        startLine,
-      };
-    }
-
-    return [diagnostic];
+    const diagnostic = createPowerShellAnalyzerDiagnostic(record, cwd);
+    return diagnostic === undefined ? [] : [diagnostic];
   });
+}
+
+function createPowerShellAnalyzerDiagnostic(
+  record: Record<string, unknown>,
+  cwd: string,
+): Diagnostic | undefined {
+  const file = readPowerShellAnalyzerFile(record, cwd);
+  if (file === undefined) {
+    return undefined;
+  }
+
+  const diagnostic: Diagnostic = {
+    file,
+    message: readString(record, "Message") ?? "PSScriptAnalyzer reported a diagnostic.",
+    severity: normalizeSeverity(readPowerShellAnalyzerSeverity(record)),
+    source: "psscriptanalyzer",
+  };
+  addPowerShellAnalyzerCode(diagnostic, record);
+  addPowerShellAnalyzerRange(diagnostic, record);
+  return diagnostic;
+}
+
+function readPowerShellAnalyzerFile(
+  record: Record<string, unknown>,
+  cwd: string,
+): string | undefined {
+  return (
+    resolveDiagnosticFile(readString(record, "ScriptPath"), cwd) ??
+    resolveDiagnosticFile(readNestedString(record, ["Extent", "File"]), cwd) ??
+    resolveDiagnosticFile(readNestedString(record, ["Extent", "ScriptName"]), cwd)
+  );
+}
+
+function readPowerShellAnalyzerSeverity(record: Record<string, unknown>): string | undefined {
+  const severity = readString(record, "Severity")?.toLowerCase();
+  return severity === "parseerror" ? "error" : severity;
+}
+
+function addPowerShellAnalyzerCode(diagnostic: Diagnostic, record: Record<string, unknown>): void {
+  const code = readString(record, "RuleName");
+  if (code !== undefined) {
+    diagnostic.code = code;
+  }
+}
+
+function addPowerShellAnalyzerRange(diagnostic: Diagnostic, record: Record<string, unknown>): void {
+  const startLine =
+    readNumber(record.Line) ?? readNumber(readNestedValue(record, ["Extent", "StartLineNumber"]));
+  const startColumn =
+    readNumber(record.Column) ??
+    readNumber(readNestedValue(record, ["Extent", "StartColumnNumber"]));
+  if (startLine === undefined || startColumn === undefined) {
+    return;
+  }
+
+  const endLine = readNumber(readNestedValue(record, ["Extent", "EndLineNumber"]));
+  const endColumn = readNumber(readNestedValue(record, ["Extent", "EndColumnNumber"]));
+  diagnostic.range = {
+    ...(endColumn === undefined ? {} : { endColumn }),
+    ...(endLine === undefined ? {} : { endLine }),
+    startColumn,
+    startLine,
+  };
 }
 
 export function parsePowerShellFormatResults(

@@ -14,44 +14,13 @@ export function parseTscDiagnostics(output: string, cwd: string): Diagnostic[] {
       continue;
     }
 
-    const match =
-      /^(.*?)(?:\((\d+),(\d+)\)|:(\d+):(\d+))(?:\s-\s|:\s*|\s+)(error|warning|info)\s(TS\d+):\s(.+)$/u.exec(
-        trimmed,
-      );
-    if (match !== null) {
+    const parsedLine = parseTscDiagnosticLine(trimmed, cwd);
+    if (parsedLine !== undefined) {
       if (current !== undefined) {
         diagnostics.push(current);
       }
 
-      const filePath = match[1];
-      const startLineValue = match[2] ?? match[4];
-      const startColumnValue = match[3] ?? match[5];
-      const code = match[7];
-      const message = match[8];
-      if (
-        filePath === undefined ||
-        startLineValue === undefined ||
-        startColumnValue === undefined ||
-        code === undefined ||
-        message === undefined
-      ) {
-        continue;
-      }
-
-      const file = path.resolve(cwd, filePath);
-      const startLine = Number(startLineValue);
-      const startColumn = Number(startColumnValue);
-      current = {
-        code,
-        file,
-        message,
-        range: {
-          startColumn,
-          startLine,
-        },
-        severity: normalizeSeverity(match[6]),
-        source: "tsc",
-      };
+      current = parsedLine;
       continue;
     }
 
@@ -65,4 +34,58 @@ export function parseTscDiagnostics(output: string, cwd: string): Diagnostic[] {
   }
 
   return diagnostics;
+}
+
+function parseTscDiagnosticLine(line: string, cwd: string): Diagnostic | undefined {
+  const match =
+    /^(.*?)(?:\((\d+),(\d+)\)|:(\d+):(\d+))(?:\s-\s|:\s*|\s+)(error|warning|info)\s(TS\d+):\s(.+)$/u.exec(
+      line,
+    );
+  if (match === null) {
+    return undefined;
+  }
+
+  const fields = readTscDiagnosticFields(match);
+  if (fields === undefined) {
+    return undefined;
+  }
+
+  return {
+    code: fields.code,
+    file: path.resolve(cwd, fields.filePath),
+    message: fields.message,
+    range: {
+      startColumn: Number(fields.startColumnValue),
+      startLine: Number(fields.startLineValue),
+    },
+    severity: normalizeSeverity(match[6]),
+    source: "tsc",
+  };
+}
+
+function readTscDiagnosticFields(match: RegExpExecArray):
+  | {
+      code: string;
+      filePath: string;
+      message: string;
+      startColumnValue: string;
+      startLineValue: string;
+    }
+  | undefined {
+  const fields = {
+    code: match[7],
+    filePath: match[1],
+    message: match[8],
+    startColumnValue: match[3] ?? match[5],
+    startLineValue: match[2] ?? match[4],
+  };
+  return Object.values(fields).some((value) => value === undefined)
+    ? undefined
+    : (fields as {
+        code: string;
+        filePath: string;
+        message: string;
+        startColumnValue: string;
+        startLineValue: string;
+      });
 }

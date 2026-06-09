@@ -5,7 +5,7 @@ const child = spawn(
   [
     "./node_modules/vitest/vitest.mjs",
     "run",
-    "packages/cli/test/cli.test.ts",
+    "packages/cli/test/cli-package-smoke.test.ts",
     "--testNamePattern=CLI package smoke",
   ],
   {

@@ -1,0 +1,205 @@
+import path from "node:path";
+
+import type { BenchmarkScenario } from "./types.js";
+
+export function createBenchmarkCorpusPart08(root: string): BenchmarkScenario[] {
+  const fixture = (relativePath: string): string => path.resolve(root, relativePath);
+
+  return [
+    {
+      budget: {
+        maxDurationMs: 60_000,
+        maxStageDurationMs: { security: 60_000 },
+      },
+      description: "Warm full-repo security benchmark for the Kotlin fixture.",
+      fixturePath: fixture("test-projects/kotlin-gradle"),
+      id: "kotlin-security-full-repo-warm",
+      inputs: ["."],
+      kind: "warm",
+      metadata: {
+        languages: ["kotlin"],
+        scale: "medium",
+        shape: "full-repo",
+        tags: ["full-repo", "kotlin", "medium", "security", "warm"],
+      },
+      profile: "standard",
+      stages: ["security"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Cold single-file lint benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-lint-single-file-cold",
+      inputs: ["example.sh"],
+      kind: "cold",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["bash", "cold", "lint", "single-file", "small"],
+      },
+      profile: "fast",
+      stages: ["lint"],
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Warm multi-file lint benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-lint-multi-file-warm",
+      inputs: ["example.sh", "utils.sh"],
+      kind: "warm",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "multi-file",
+        tags: ["bash", "lint", "multi-file", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["lint"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Cold full-repo lint benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-lint-full-repo-cold",
+      inputs: ["."],
+      kind: "cold",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["bash", "cold", "full-repo", "lint", "small"],
+      },
+      profile: "standard",
+      stages: ["lint"],
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { format: 20_000 },
+      },
+      description: "Diff-only single-file format benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-format-single-file-diff",
+      inputs: ["example.sh"],
+      kind: "diff-only",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["bash", "diff-only", "format", "single-file", "small"],
+      },
+      profile: "fast",
+      stages: ["format"],
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { format: 20_000 },
+      },
+      description: "Warm full-repo format benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-format-full-repo-warm",
+      inputs: ["."],
+      kind: "warm",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["bash", "format", "full-repo", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["format"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 30_000,
+        maxStageDurationMs: { unit: 30_000 },
+      },
+      description: "Warm single-file unit benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-unit-single-file-warm",
+      inputs: ["example_test.bats"],
+      kind: "warm",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["bash", "single-file", "small", "unit", "warm"],
+      },
+      profile: "standard",
+      stages: ["unit"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 30_000,
+        maxStageDurationMs: { unit: 30_000 },
+      },
+      description: "Cold full-repo unit benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-unit-full-repo-cold",
+      inputs: ["."],
+      kind: "cold",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["bash", "cold", "full-repo", "small", "unit"],
+      },
+      profile: "standard",
+      stages: ["unit"],
+    },
+    {
+      budget: {
+        maxDurationMs: 30_000,
+        maxStageDurationMs: { coverage: 30_000 },
+      },
+      description: "Warm full-repo coverage benchmark for the Bash fixture.",
+      fixturePath: fixture("test-projects/bash"),
+      id: "bash-coverage-full-repo-warm",
+      inputs: ["."],
+      kind: "warm",
+      metadata: {
+        languages: ["bash"],
+        scale: "small",
+        shape: "full-repo",
+        tags: ["bash", "coverage", "full-repo", "small", "warm"],
+      },
+      profile: "standard",
+      stages: ["coverage"],
+      warmupRuns: 1,
+    },
+    {
+      budget: {
+        maxDurationMs: 20_000,
+        maxStageDurationMs: { lint: 20_000 },
+      },
+      description: "Cold single-file lint benchmark for the PowerShell fixture.",
+      fixturePath: fixture("test-projects/powershell"),
+      id: "powershell-lint-single-file-cold",
+      inputs: ["example.ps1"],
+      kind: "cold",
+      metadata: {
+        languages: ["powershell"],
+        scale: "small",
+        shape: "single-file",
+        tags: ["cold", "lint", "powershell", "single-file", "small"],
+      },
+      profile: "fast",
+      stages: ["lint"],
+    },
+  ];
+}
