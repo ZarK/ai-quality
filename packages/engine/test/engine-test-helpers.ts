@@ -55,22 +55,27 @@ export function runEngine(
   request: Parameters<typeof runEngineBase>[0],
 ): ReturnType<typeof runEngineBase> {
   const run = () => runEngineBase(request);
-  return shouldUseGradleLock(request.manifest.files)
+  return shouldUseGradleLock(request.manifest.files, request.stages)
     ? (withExclusiveToolLock("gradle", run) as ReturnType<typeof runEngineBase>)
     : run();
 }
 
-function shouldUseGradleLock(files: readonly string[]): boolean {
-  return files.some((file) => {
-    const baseName = path.basename(file).toLowerCase();
-    return (
-      file.endsWith(".kt") ||
-      baseName === "build.gradle" ||
-      baseName === "build.gradle.kts" ||
-      baseName === "settings.gradle" ||
-      baseName === "settings.gradle.kts"
-    );
-  });
+const gradleLockStageIds = new Set(["coverage", "format", "lint", "typecheck", "unit"]);
+
+function shouldUseGradleLock(files: readonly string[], stages: readonly string[]): boolean {
+  return (
+    stages.some((stage) => gradleLockStageIds.has(stage)) &&
+    files.some((file) => {
+      const baseName = path.basename(file).toLowerCase();
+      return (
+        file.endsWith(".kt") ||
+        baseName === "build.gradle" ||
+        baseName === "build.gradle.kts" ||
+        baseName === "settings.gradle" ||
+        baseName === "settings.gradle.kts"
+      );
+    })
+  );
 }
 
 export async function createDotNetFixtureProject(
